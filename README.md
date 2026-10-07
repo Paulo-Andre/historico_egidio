@@ -1,67 +1,98 @@
-# EMITIR HISTÓRICO — versão web
+# Histórico Egídio
 
-Migração inicial do arquivo Excel `EMITIR HISTORICO.xlsx` para Django.
+Sistema web para emissão e administração de históricos escolares da Escola Municipal Egídio Cordeiro Aquino.
 
-## O que esta versão preserva
-- As 49 abas originais e suas células relevantes no banco.
-- Valores calculados salvos no Excel e fórmulas originais, lado a lado.
-- Base `DADOS ALUNOS` convertida em cadastro pesquisável.
-- `DADOS ADCIONAIS` convertida em parâmetros por ano.
-- Todas as `ATA 2009` a `ATA 2025` importadas para consulta histórica.
-- Pesquisa por código/nome do aluno.
-- Tela de aluno e visualização dos registros encontrados nas ATAs.
-- Modelo web de histórico para impressão.
-- Administração Django.
-- Visualizador técnico das planilhas importadas.
+## Arquitetura atual
 
-## Privacidade da planilha de origem
+A aplicação **não usa Excel durante o funcionamento**. Os dados são armazenados em banco SQLite próprio e o sistema trabalha com entidades relacionais:
 
-O arquivo `EMITIR HISTORICO.xlsx` contém dados de alunos e, por isso, **não é versionado neste repositório público**. O `.gitignore` bloqueia arquivos `.xlsx` e `.xls` dentro de `data/`.
+- Alunos
+- Configurações por ano letivo
+- Registros acadêmicos
+- Turmas e séries
+- Notas por componente curricular
+- Faltas
+- Resultado final
+- Histórico escolar para impressão
 
-Antes da primeira importação, coloque manualmente o arquivo no servidor em:
+As regras principais que estavam nas fórmulas do Excel foram migradas para Python, incluindo:
+
+- média mínima por ano;
+- situação APTO;
+- resultados APROVADO, EM CONTINUIDADE e Em Curso;
+- conversão de faltas para horas;
+- tratamento especial do ano de 2020;
+- carga horária e dias letivos por ano.
+
+## Migração dos dados antigos
+
+O arquivo Excel original foi usado somente como **fonte de conversão**. Foi gerado um pacote privado chamado:
+
+`migracao_inicial_historico_egidio.json`
+
+Esse arquivo contém dados pessoais de alunos e, por segurança, **não fica no GitHub público**.
+
+Coloque-o uma única vez em:
 
 ```
-data/EMITIR HISTORICO.xlsx
+data/migracao_inicial_historico_egidio.json
 ```
 
-Assim os dados permanecem somente no ambiente autorizado.
+Na primeira inicialização, o container cria o banco e importa esse pacote automaticamente. Depois disso o sistema utiliza somente:
 
-## Importante sobre fidelidade
+```
+data/historico.sqlite3
+```
 
-Esta é a fundação executável da migração. O Excel contém centenas de fórmulas e layouts de impressão específicos. Elas são preservadas no banco pela importação, mas a reimplementação regra-a-regra do motor de cálculo (para reproduzir dinamicamente `INFO. ALUNO`, `NOTAS AL.` e `HISTÓRICO 2025`) deve ser validada contra o Excel antes de substituir definitivamente a planilha. Nenhuma regra foi descartada.
+Após confirmar a migração, o JSON também pode ser removido do servidor.
 
-## Executar localmente
+## Instalação com Docker
 
 ```bash
-python -m venv .venv
-# Linux/macOS
-source .venv/bin/activate
-# Windows: .venv\\Scripts\\activate
-pip install -r requirements.txt
-python manage.py makemigrations historico
-python manage.py migrate
-python manage.py importar_excel "data/EMITIR HISTORICO.xlsx"
-python manage.py createsuperuser
-python manage.py runserver 0.0.0.0:8000
-```
-
-Abra `http://IP_DO_SERVIDOR:8000/`.
-
-## Executar com Docker
-
-Primeira inicialização:
-
-```bash
+git clone https://github.com/Paulo-Andre/historico_egidio.git
+cd historico_egidio
+mkdir -p data
+# copiar migracao_inicial_historico_egidio.json para ./data/
 docker compose build
-docker compose run --rm web python manage.py makemigrations historico
-docker compose run --rm web python manage.py migrate
-docker compose run --rm web python manage.py importar_excel "data/EMITIR HISTORICO.xlsx"
-docker compose run --rm web python manage.py createsuperuser
 docker compose up -d
 ```
 
-Depois, use `http://IP_DO_SERVIDOR:8000/`.
+Acompanhe a primeira carga:
 
-## Próxima etapa
+```bash
+docker compose logs -f web
+```
 
-Implementar e testar o motor de equivalência das fórmulas das abas `NOTAS AL.`, `INFO. ALUNO`, `HISTÓRICO 2025` e `HISTORICO`, comparando vários alunos com o resultado atual do Excel até obter equivalência total.
+O log deve informar a quantidade de alunos, registros acadêmicos e notas migradas.
+
+Acesse:
+
+```
+http://IP_DO_SERVIDOR:8000
+```
+
+## Administração
+
+Crie o usuário administrador:
+
+```bash
+docker compose exec web python manage.py createsuperuser
+```
+
+Depois acesse:
+
+```
+http://IP_DO_SERVIDOR:8000/admin/
+```
+
+No painel é possível cadastrar e editar alunos, registros acadêmicos, resultados, faltas, notas e configurações anuais sem utilizar Excel.
+
+## Backup
+
+O banco fica em:
+
+```
+data/historico.sqlite3
+```
+
+Para backup, basta copiar esse arquivo com o container parado ou utilizar uma rotina de backup consistente para SQLite.
