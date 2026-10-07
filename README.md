@@ -14,10 +14,24 @@ Migração inicial do arquivo Excel `EMITIR HISTORICO.xlsx` para Django.
 - Administração Django.
 - Visualizador técnico das planilhas importadas.
 
+## Privacidade da planilha de origem
+
+O arquivo `EMITIR HISTORICO.xlsx` contém dados de alunos e, por isso, **não é versionado neste repositório público**. O `.gitignore` bloqueia arquivos `.xlsx` e `.xls` dentro de `data/`.
+
+Antes da primeira importação, coloque manualmente o arquivo no servidor em:
+
+```
+data/EMITIR HISTORICO.xlsx
+```
+
+Assim os dados permanecem somente no ambiente autorizado.
+
 ## Importante sobre fidelidade
+
 Esta é a fundação executável da migração. O Excel contém centenas de fórmulas e layouts de impressão específicos. Elas são preservadas no banco pela importação, mas a reimplementação regra-a-regra do motor de cálculo (para reproduzir dinamicamente `INFO. ALUNO`, `NOTAS AL.` e `HISTÓRICO 2025`) deve ser validada contra o Excel antes de substituir definitivamente a planilha. Nenhuma regra foi descartada.
 
 ## Executar localmente
+
 ```bash
 python -m venv .venv
 # Linux/macOS
@@ -30,10 +44,13 @@ python manage.py importar_excel "data/EMITIR HISTORICO.xlsx"
 python manage.py createsuperuser
 python manage.py runserver 0.0.0.0:8000
 ```
+
 Abra `http://IP_DO_SERVIDOR:8000/`.
 
 ## Executar com Docker
+
 Primeira inicialização:
+
 ```bash
 docker compose build
 docker compose run --rm web python manage.py makemigrations historico
@@ -42,7 +59,9 @@ docker compose run --rm web python manage.py importar_excel "data/EMITIR HISTORI
 docker compose run --rm web python manage.py createsuperuser
 docker compose up -d
 ```
+
 Depois, use `http://IP_DO_SERVIDOR:8000/`.
 
-## Próxima etapa recomendada
+## Próxima etapa
+
 Implementar e testar o motor de equivalência das fórmulas das abas `NOTAS AL.`, `INFO. ALUNO`, `HISTÓRICO 2025` e `HISTORICO`, comparando vários alunos com o resultado atual do Excel até obter equivalência total.
