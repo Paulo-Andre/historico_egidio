@@ -1,2 +1,20 @@
 {% load static %}
-<!doctype html><html lang="pt-br"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{% block title %}Histórico Escolar{% endblock %}</title><link rel="stylesheet" href="{% static 'historico/css/app.css' %}"></head><body><header><div class="brand">EMITIR HISTÓRICO</div><nav><a href="{% url 'historico:inicio' %}">INÍCIO</a><a href="{% url 'historico:planilhas' %}">PLANILHAS</a><a href="/admin/">ADMINISTRAÇÃO</a></nav></header><main>{% block content %}{% endblock %}</main></body></html>
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}Histórico Escolar{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'historico/css/app.css' %}">
+</head>
+<body>
+<header>
+  <div class="brand">EMITIR HISTÓRICO</div>
+  <nav>
+    <a href="{% url 'historico:inicio' %}">INÍCIO</a>
+    <a href="/admin/">ADMINISTRAÇÃO</a>
+  </nav>
+</header>
+<main>{% block content %}{% endblock %}</main>
+</body>
+</html>
