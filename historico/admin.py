@@ -1,12 +1,31 @@
 from django.contrib import admin
-from .models import Aluno, ParametroAno, AbaExcel, CelulaExcel, RegistroAta
+from .models import Aluno, ConfiguracaoAno, RegistroAcademico, Nota
+
+class NotaInline(admin.TabularInline):
+    model = Nota
+    extra = 0
+
 @admin.register(Aluno)
 class AlunoAdmin(admin.ModelAdmin):
-    list_display=('codigo','nome','nascimento','sexo'); search_fields=('nome','codigo','mae','pai')
-@admin.register(ParametroAno)
-class ParametroAnoAdmin(admin.ModelAdmin): list_display=('ano','ch_anual','dias_letivos','media','escola')
-@admin.register(AbaExcel)
-class AbaExcelAdmin(admin.ModelAdmin): list_display=('ordem','nome','visivel','max_linha','max_coluna')
-@admin.register(RegistroAta)
-class RegistroAtaAdmin(admin.ModelAdmin): list_display=('ano','linha','texto_busca'); search_fields=('texto_busca',)
-admin.site.register(CelulaExcel)
+    list_display = ("codigo", "nome", "nascimento", "sexo", "ativo")
+    search_fields = ("nome", "codigo", "mae", "pai")
+    list_filter = ("ativo", "sexo")
+
+@admin.register(ConfiguracaoAno)
+class ConfiguracaoAnoAdmin(admin.ModelAdmin):
+    list_display = ("ano", "ch_anual", "dias_letivos", "media_minima", "escola")
+    ordering = ("ano",)
+
+@admin.register(RegistroAcademico)
+class RegistroAcademicoAdmin(admin.ModelAdmin):
+    list_display = ("ano", "serie", "turma", "aluno", "nome_original", "faltas", "resultado")
+    list_filter = ("ano", "serie", "resultado")
+    search_fields = ("aluno__nome", "nome_original", "turma")
+    autocomplete_fields = ("aluno",)
+    inlines = [NotaInline]
+
+@admin.register(Nota)
+class NotaAdmin(admin.ModelAdmin):
+    list_display = ("registro", "componente", "valor")
+    list_filter = ("componente",)
+    search_fields = ("registro__aluno__nome", "registro__nome_original")
