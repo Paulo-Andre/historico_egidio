@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.sqlite3
+.env
+.venv/
+staticfiles/
+media/
+.DS_Store
+data/*.xlsx
+data/*.xls
+!data/.gitkeep
