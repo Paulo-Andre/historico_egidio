@@ -1,53 +1,109 @@
 from django.db import models
 
 class Aluno(models.Model):
-    codigo=models.PositiveIntegerField(unique=True, db_index=True)
-    nome=models.CharField(max_length=255, db_index=True)
-    uf=models.CharField(max_length=10, blank=True)
-    pai=models.CharField(max_length=255, blank=True)
-    mae=models.CharField(max_length=255, blank=True)
-    nascimento=models.CharField(max_length=30, blank=True)
-    naturalidade=models.CharField(max_length=120, blank=True)
-    nacionalidade=models.CharField(max_length=120, blank=True)
-    sexo=models.CharField(max_length=30, blank=True)
-    def __str__(self): return f'{self.codigo} - {self.nome}'
+    codigo = models.PositiveIntegerField(unique=True, db_index=True)
+    nome = models.CharField(max_length=255, db_index=True)
+    uf = models.CharField(max_length=10, blank=True)
+    pai = models.CharField(max_length=255, blank=True)
+    mae = models.CharField(max_length=255, blank=True)
+    nascimento = models.CharField(max_length=30, blank=True)
+    naturalidade = models.CharField(max_length=120, blank=True)
+    nacionalidade = models.CharField(max_length=120, blank=True)
+    sexo = models.CharField(max_length=30, blank=True)
+    ativo = models.BooleanField(default=True)
 
-class ParametroAno(models.Model):
-    ano=models.PositiveIntegerField(unique=True)
-    ch_ingles=models.CharField(max_length=30, blank=True)
-    ch_anual=models.CharField(max_length=30, blank=True)
-    dias_letivos=models.CharField(max_length=30, blank=True)
-    ch_sem_ingles=models.CharField(max_length=30, blank=True)
-    media=models.CharField(max_length=30, blank=True)
-    escola=models.CharField(max_length=255, blank=True)
-    def __str__(self): return str(self.ano)
-
-class AbaExcel(models.Model):
-    nome=models.CharField(max_length=120, unique=True)
-    ordem=models.PositiveIntegerField(default=0)
-    visivel=models.BooleanField(default=True)
-    max_linha=models.PositiveIntegerField(default=1)
-    max_coluna=models.PositiveIntegerField(default=1)
-    def __str__(self): return self.nome
-
-class CelulaExcel(models.Model):
-    aba=models.ForeignKey(AbaExcel,on_delete=models.CASCADE,related_name='celulas')
-    referencia=models.CharField(max_length=20)
-    linha=models.PositiveIntegerField()
-    coluna=models.PositiveIntegerField()
-    valor=models.TextField(blank=True)
-    formula=models.TextField(blank=True)
-    numero_formato=models.CharField(max_length=120,blank=True)
-    estilo_id=models.PositiveIntegerField(default=0)
     class Meta:
-        constraints=[models.UniqueConstraint(fields=['aba','referencia'],name='uniq_aba_celula')]
-        indexes=[models.Index(fields=['aba','linha','coluna'])]
+        ordering = ["nome"]
 
-class RegistroAta(models.Model):
-    ano=models.PositiveIntegerField(db_index=True)
-    linha=models.PositiveIntegerField()
-    dados=models.JSONField(default=dict)
-    texto_busca=models.TextField(blank=True, db_index=False)
+    def __str__(self):
+        return f"{self.codigo} - {self.nome}"
+
+
+class ConfiguracaoAno(models.Model):
+    ano = models.PositiveIntegerField(unique=True)
+    ch_ingles = models.CharField(max_length=30, blank=True)
+    ch_anual = models.CharField(max_length=30, blank=True)
+    dias_letivos = models.CharField(max_length=30, blank=True)
+    ch_sem_ingles = models.CharField(max_length=30, blank=True)
+    media_minima = models.CharField(max_length=30, blank=True)
+    escola = models.CharField(max_length=255, blank=True)
+    municipio = models.CharField(max_length=120, default="MONTES CLAROS")
+    uf = models.CharField(max_length=2, default="MG")
+
     class Meta:
-        constraints=[models.UniqueConstraint(fields=['ano','linha'],name='uniq_ata_linha')]
-        ordering=['ano','linha']
+        ordering = ["ano"]
+
+    def __str__(self):
+        return str(self.ano)
+
+
+class RegistroAcademico(models.Model):
+    aluno = models.ForeignKey(
+        Aluno, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="registros_academicos"
+    )
+    nome_original = models.CharField(max_length=255, blank=True)
+    ano = models.PositiveIntegerField(db_index=True)
+    serie = models.PositiveSmallIntegerField(null=True, blank=True)
+    turma = models.CharField(max_length=120, blank=True)
+    faltas = models.CharField(max_length=40, blank=True)
+    resultado = models.CharField(max_length=80, blank=True)
+    escola = models.CharField(max_length=255, blank=True)
+    municipio = models.CharField(max_length=120, default="MONTES CLAROS")
+    uf = models.CharField(max_length=2, default="MG")
+    linha_origem = models.PositiveIntegerField(null=True, blank=True)
+    observacao = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["ano", "serie", "turma", "nome_original"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["ano", "linha_origem"],
+                name="uniq_registro_ano_linha"
+            )
+        ]
+
+    def __str__(self):
+        nome = self.aluno.nome if self.aluno_id else self.nome_original
+        return f"{self.ano} - {nome}"
+
+
+class Nota(models.Model):
+    ARTE = "arte"
+    CIENCIAS = "ciencias"
+    EDUCACAO_FISICA = "educacao_fisica"
+    EDUCACAO_RELIGIOSA = "educacao_religiosa"
+    GEOGRAFIA = "geografia"
+    HISTORIA = "historia"
+    LINGUA_INGLESA = "lingua_inglesa"
+    MATEMATICA = "matematica"
+    LINGUA_PORTUGUESA = "lingua_portuguesa"
+
+    COMPONENTES = [
+        (ARTE, "Arte"),
+        (CIENCIAS, "Ciências"),
+        (EDUCACAO_FISICA, "Educação Física"),
+        (EDUCACAO_RELIGIOSA, "Educação Religiosa"),
+        (GEOGRAFIA, "Geografia"),
+        (HISTORIA, "História"),
+        (LINGUA_INGLESA, "Língua Inglesa"),
+        (MATEMATICA, "Matemática"),
+        (LINGUA_PORTUGUESA, "Língua Portuguesa/Literatura"),
+    ]
+
+    registro = models.ForeignKey(
+        RegistroAcademico, on_delete=models.CASCADE, related_name="notas"
+    )
+    componente = models.CharField(max_length=40, choices=COMPONENTES)
+    valor = models.CharField(max_length=40, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["registro", "componente"],
+                name="uniq_nota_registro_componente"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.get_componente_display()}: {self.valor}"
