@@ -1,0 +1,14 @@
+services:
+  web:
+    build: .
+    container_name: historico-web
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./db.sqlite3:/app/db.sqlite3
+      - ./data:/app/data:ro
+    environment:
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: "*"
+      DJANGO_SECRET_KEY: "troque-por-uma-chave-forte"
+    restart: unless-stopped
