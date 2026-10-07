@@ -1,4 +1,38 @@
-{% extends 'historico/base.html' %}{% block content %}
-<section class="hero"><h1>Emissão de Histórico Escolar</h1><p>Versão web migrada do sistema Excel, preservando os dados e a estrutura original.</p><form><input name="q" value="{{ q }}" placeholder="Digite o código ou nome do aluno" autofocus><button>LOCALIZAR ALUNO</button></form><div class="stats"><span>{{ total }} alunos importados</span><span>{{ abas }} planilhas preservadas</span></div></section>
-{% if q %}<section class="card"><h2>Resultado da pesquisa</h2>{% if alunos %}<table><thead><tr><th>Cód.</th><th>Nome</th><th>Nascimento</th><th></th></tr></thead><tbody>{% for a in alunos %}<tr><td>{{ a.codigo }}</td><td>{{ a.nome }}</td><td>{{ a.nascimento }}</td><td><a class="btn" href="{% url 'historico:aluno' a.codigo %}">ABRIR</a></td></tr>{% endfor %}</tbody></table>{% else %}<p>Nenhum aluno encontrado.</p>{% endif %}</section>{% endif %}
+{% extends 'historico/base.html' %}
+{% block content %}
+<section class="hero">
+  <h1>Emissão de Histórico Escolar</h1>
+  <p>Sistema web com banco de dados próprio.</p>
+  <form>
+    <input name="q" value="{{ q }}" placeholder="Digite o código ou nome do aluno" autofocus>
+    <button>LOCALIZAR ALUNO</button>
+  </form>
+  <div class="stats">
+    <span>{{ total }} alunos cadastrados</span>
+    <span>{{ registros }} registros acadêmicos</span>
+  </div>
+</section>
+
+{% if q %}
+<section class="card">
+  <h2>Resultado da pesquisa</h2>
+  {% if alunos %}
+  <table>
+    <thead><tr><th>Cód.</th><th>Nome</th><th>Nascimento</th><th></th></tr></thead>
+    <tbody>
+    {% for a in alunos %}
+      <tr>
+        <td>{{ a.codigo }}</td>
+        <td>{{ a.nome }}</td>
+        <td>{{ a.nascimento }}</td>
+        <td><a class="btn" href="{% url 'historico:aluno' a.codigo %}">ABRIR</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>Nenhum aluno encontrado.</p>
+  {% endif %}
+</section>
+{% endif %}
 {% endblock %}
