@@ -1,3 +1,4 @@
+{% load static %}
 {% extends 'historico/base.html' %}
 {% block content %}
 <div class="print-actions">
@@ -6,6 +7,7 @@
 </div>
 
 <article class="excel-historico">
+  <img class="timbragem-original" src="{% static 'historico/img/timbragem_historico_egidio.jpeg' %}" alt="Timbragem oficial da Escola Municipal Egídio Cordeiro Aquino">
   {% with ultimo=historico|last %}
   <section class="certificado">
     <h1>CERTIFICADO DE CONCLUSÃO</h1>
