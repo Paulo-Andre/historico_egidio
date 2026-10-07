@@ -1,1 +1,86 @@
-{% extends 'historico/base.html' %}{% block content %}<div class="print-actions"><button onclick="window.print()">IMPRIMIR</button><a href="{% url 'historico:aluno' aluno.codigo %}">VOLTAR</a></div><article class="documento"><h2>HISTÓRICO ESCOLAR</h2><h3>ENSINO FUNDAMENTAL — ANOS INICIAIS</h3><table class="dados"><tr><th>NOME</th><td colspan="5">{{ aluno.nome|upper }}</td></tr><tr><th>SEXO</th><td>{{ aluno.sexo|upper }}</td><th>DATA DE NASCIMENTO</th><td>{{ aluno.nascimento }}</td><th>UF</th><td>{{ aluno.uf }}</td></tr><tr><th>NATURALIDADE</th><td colspan="2">{{ aluno.naturalidade|upper }}</td><th>NACIONALIDADE</th><td colspan="2">{{ aluno.nacionalidade|upper }}</td></tr><tr><th>PAI</th><td colspan="5">{{ aluno.pai|upper }}</td></tr><tr><th>MÃE</th><td colspan="5">{{ aluno.mae|upper }}</td></tr></table><h4>VIDA ESCOLAR</h4><table class="historico"><thead><tr><th>Ano letivo</th><th>Dados recuperados da ATA original</th><th>C.H. anual</th><th>Dias letivos</th><th>Média</th></tr></thead><tbody>{% for h in historico %}<tr><td>{{ h.ano }}</td><td class="raw">{{ h.dados }}</td><td>{% if h.parametro %}{{ h.parametro.ch_anual }}{% endif %}</td><td>{% if h.parametro %}{{ h.parametro.dias_letivos }}{% endif %}</td><td>{% if h.parametro %}{{ h.parametro.media }}{% endif %}</td></tr>{% empty %}<tr><td colspan="5">Registros acadêmicos não localizados automaticamente. Consulte a planilha original preservada.</td></tr>{% endfor %}</tbody></table><div class="assinaturas"><div>________________________________<br>SECRETÁRIO(A)</div><div>MONTES CLAROS/MG</div><div>________________________________<br>DIRETOR(A)</div></div></article>{% endblock %}
+{% extends 'historico/base.html' %}
+{% block content %}
+<div class="print-actions">
+  <button onclick="window.print()">IMPRIMIR</button>
+  <a href="{% url 'historico:aluno' aluno.codigo %}">VOLTAR</a>
+</div>
+
+<article class="documento">
+  <h2>HISTÓRICO ESCOLAR</h2>
+  <h3>ENSINO FUNDAMENTAL — ANOS INICIAIS</h3>
+
+  <table class="dados">
+    <tr><th>NOME</th><td colspan="5">{{ aluno.nome|upper }}</td></tr>
+    <tr>
+      <th>SEXO</th><td>{{ aluno.sexo|upper }}</td>
+      <th>DATA DE NASCIMENTO</th><td>{{ aluno.nascimento }}</td>
+      <th>UF</th><td>{{ aluno.uf }}</td>
+    </tr>
+    <tr>
+      <th>NATURALIDADE</th><td colspan="2">{{ aluno.naturalidade|upper }}</td>
+      <th>NACIONALIDADE</th><td colspan="2">{{ aluno.nacionalidade|upper }}</td>
+    </tr>
+    <tr><th>PAI</th><td colspan="5">{{ aluno.pai|upper }}</td></tr>
+    <tr><th>MÃE</th><td colspan="5">{{ aluno.mae|upper }}</td></tr>
+  </table>
+
+  <h4>VIDA ESCOLAR</h4>
+  <table class="historico">
+    <thead>
+      <tr>
+        <th>Ano/Série</th>
+        <th>Língua Portuguesa</th>
+        <th>Arte</th>
+        <th>Ed. Física</th>
+        <th>Inglês</th>
+        <th>Matemática</th>
+        <th>Ciências</th>
+        <th>Geografia</th>
+        <th>História</th>
+        <th>Ens. Religioso</th>
+        <th>C.H.</th>
+        <th>Faltas (h)</th>
+        <th>Situação</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for h in historico %}
+      <tr>
+        <td>
+          {% if h.registro.serie %}{{ h.registro.serie }}º ANO{% endif %}
+          {% if h.registro.ano %} — {{ h.registro.ano }}{% endif %}
+        </td>
+        <td>{{ h.notas.lingua_portuguesa }}</td>
+        <td>{{ h.notas.arte }}</td>
+        <td>{{ h.notas.educacao_fisica }}</td>
+        <td>{{ h.notas.lingua_inglesa }}</td>
+        <td>{{ h.notas.matematica }}</td>
+        <td>{{ h.notas.ciencias }}</td>
+        <td>{{ h.notas.geografia }}</td>
+        <td>{{ h.notas.historia }}</td>
+        <td>{{ h.notas.educacao_religiosa }}</td>
+        <td>{% if h.config %}{{ h.config.ch_anual }}{% endif %}</td>
+        <td>{{ h.faltas_horas }}</td>
+        <td>{% if h.apto %}APTO{% endif %}</td>
+      </tr>
+      <tr>
+        <td colspan="13">
+          <b>Estabelecimento:</b> {{ h.registro.escola }}
+          &nbsp;&nbsp; <b>Município/Estado:</b> {{ h.registro.municipio }}/{{ h.registro.uf }}
+          {% if h.config %}&nbsp;&nbsp; <b>Dias letivos:</b> {{ h.config.dias_letivos }}{% endif %}
+          {% if h.avaliacao_media %}&nbsp;&nbsp; <b>{{ h.avaliacao_media }}</b>{% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="13">Sem registros acadêmicos cadastrados.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="assinaturas">
+    <div>________________________________<br>SECRETÁRIO(A)</div>
+    <div>MONTES CLAROS/MG</div>
+    <div>________________________________<br>DIRETOR(A)</div>
+  </div>
+</article>
+{% endblock %}
