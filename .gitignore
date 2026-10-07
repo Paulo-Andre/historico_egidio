@@ -6,6 +6,7 @@ __pycache__/
 staticfiles/
 media/
 .DS_Store
-data/*.xlsx
-data/*.xls
+
+# Dados privados: nunca versionar
+data/*
 !data/.gitkeep
