@@ -1,86 +1,152 @@
 {% extends 'historico/base.html' %}
 {% block content %}
 <div class="print-actions">
-  <button onclick="window.print()">IMPRIMIR</button>
+  <button onclick="window.print()">IMPRIMIR / SALVAR PDF</button>
   <a href="{% url 'historico:aluno' aluno.codigo %}">VOLTAR</a>
 </div>
 
-<article class="documento">
-  <h2>HISTÓRICO ESCOLAR</h2>
-  <h3>ENSINO FUNDAMENTAL — ANOS INICIAIS</h3>
+<article class="excel-historico">
+  {% with ultimo=historico|last %}
+  <section class="certificado">
+    <h1>CERTIFICADO DE CONCLUSÃO</h1>
+    <div class="linha"><span>Certificamos que</span><strong>{{ aluno.nome|upper }}</strong></div>
+    <div class="linha quatro">
+      <span>Natural de</span><strong>{{ aluno.naturalidade|upper }}</strong>
+      <span>UF</span><strong>{{ aluno.uf|upper }}</strong>
+      <span>Nacionalidade</span><strong>{{ aluno.nacionalidade|upper }}</strong>
+      <span>Sexo</span><strong>{{ aluno.sexo|upper }}</strong>
+    </div>
+    <div class="linha">
+      <span>Nascido(a) em</span><strong>{{ aluno.nascimento }}</strong>
+      <span>Filho(a) de</span><strong>{{ aluno.pai|upper }}</strong>
+    </div>
+    <div class="linha">
+      <span>e de</span><strong>{{ aluno.mae|upper }}</strong>
+      <span>Carteira de Identidade nº</span><strong>********************************</strong>
+    </div>
+    <div class="linha">
+      <span>Órgão expedidor/Estado</span><strong>****************************</strong>
+      <span>concluiu em</span><strong>{% if ultimo %}{{ ultimo.registro.ano }}{% endif %}</strong>
+      <span>o Ensino Fundamental.</span>
+    </div>
+  </section>
+  {% endwith %}
 
-  <table class="dados">
-    <tr><th>NOME</th><td colspan="5">{{ aluno.nome|upper }}</td></tr>
-    <tr>
-      <th>SEXO</th><td>{{ aluno.sexo|upper }}</td>
-      <th>DATA DE NASCIMENTO</th><td>{{ aluno.nascimento }}</td>
-      <th>UF</th><td>{{ aluno.uf }}</td>
-    </tr>
-    <tr>
-      <th>NATURALIDADE</th><td colspan="2">{{ aluno.naturalidade|upper }}</td>
-      <th>NACIONALIDADE</th><td colspan="2">{{ aluno.nacionalidade|upper }}</td>
-    </tr>
-    <tr><th>PAI</th><td colspan="5">{{ aluno.pai|upper }}</td></tr>
-    <tr><th>MÃE</th><td colspan="5">{{ aluno.mae|upper }}</td></tr>
-  </table>
+  <section class="titulo-historico">
+    HISTÓRICO ESCOLAR – ENSINO FUNDAMENTAL<br>ANOS INICIAIS
+  </section>
 
-  <h4>VIDA ESCOLAR</h4>
-  <table class="historico">
-    <thead>
-      <tr>
-        <th>Ano/Série</th>
-        <th>Língua Portuguesa</th>
-        <th>Arte</th>
-        <th>Ed. Física</th>
-        <th>Inglês</th>
-        <th>Matemática</th>
-        <th>Ciências</th>
-        <th>Geografia</th>
-        <th>História</th>
-        <th>Ens. Religioso</th>
-        <th>C.H.</th>
-        <th>Faltas (h)</th>
-        <th>Situação</th>
-      </tr>
-    </thead>
-    <tbody>
-    {% for h in historico %}
-      <tr>
-        <td>
-          {% if h.registro.serie %}{{ h.registro.serie }}º ANO{% endif %}
-          {% if h.registro.ano %} — {{ h.registro.ano }}{% endif %}
-        </td>
-        <td>{{ h.notas.lingua_portuguesa }}</td>
-        <td>{{ h.notas.arte }}</td>
-        <td>{{ h.notas.educacao_fisica }}</td>
-        <td>{{ h.notas.lingua_inglesa }}</td>
-        <td>{{ h.notas.matematica }}</td>
-        <td>{{ h.notas.ciencias }}</td>
-        <td>{{ h.notas.geografia }}</td>
-        <td>{{ h.notas.historia }}</td>
-        <td>{{ h.notas.educacao_religiosa }}</td>
-        <td>{% if h.config %}{{ h.config.ch_anual }}{% endif %}</td>
-        <td>{{ h.faltas_horas }}</td>
-        <td>{% if h.apto %}APTO{% endif %}</td>
-      </tr>
-      <tr>
-        <td colspan="13">
-          <b>Estabelecimento:</b> {{ h.registro.escola }}
-          &nbsp;&nbsp; <b>Município/Estado:</b> {{ h.registro.municipio }}/{{ h.registro.uf }}
-          {% if h.config %}&nbsp;&nbsp; <b>Dias letivos:</b> {{ h.config.dias_letivos }}{% endif %}
-          {% if h.avaliacao_media %}&nbsp;&nbsp; <b>{{ h.avaliacao_media }}</b>{% endif %}
-        </td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="13">Sem registros acadêmicos cadastrados.</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
+  <div class="corpo-historico">
+    <div class="quadro-principal">
+      <table class="grade-historico">
+        <thead>
+          <tr>
+            <th rowspan="2" class="col-ano">ÁREAS DO CONHECIMENTO</th>
+            <th colspan="4">LINGUAGENS</th>
+            <th>MATEMÁTICA</th>
+            <th>CIÊNCIAS DA NATUREZA</th>
+            <th colspan="2">CIÊNCIAS HUMANAS</th>
+            <th>ENSINO RELIGIOSO</th>
+            <th rowspan="2" class="vertical">TOTAL CARGA HORÁRIA</th>
+            <th rowspan="2" class="vertical">SITUAÇÃO DO ALUNO</th>
+          </tr>
+          <tr>
+            <th class="vertical">LÍNGUA PORTUGUESA / LITERATURA</th>
+            <th class="vertical">ARTE</th>
+            <th class="vertical">EDUCAÇÃO FÍSICA</th>
+            <th class="vertical">LÍNGUA INGLESA</th>
+            <th class="vertical">MATEMÁTICA</th>
+            <th class="vertical">CIÊNCIAS</th>
+            <th class="vertical">GEOGRAFIA</th>
+            <th class="vertical">HISTÓRIA</th>
+            <th class="vertical">ENSINO RELIGIOSO</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for h in historico %}
+          <tr class="aproveitamento">
+            <th rowspan="5" class="serie">{% if h.registro.serie %}{{ h.registro.serie }}º ANO:{% else %}{{ h.registro.ano }}:{% endif %}</th>
+            <th class="rotulo">APROVEITAMENTO</th>
+            <td>{{ h.notas.lingua_portuguesa }}</td>
+            <td>{{ h.notas.arte }}</td>
+            <td>{{ h.notas.educacao_fisica }}</td>
+            <td>{{ h.notas.lingua_inglesa }}</td>
+            <td>{{ h.notas.matematica }}</td>
+            <td>{{ h.notas.ciencias }}</td>
+            <td>{{ h.notas.geografia }}</td>
+            <td>{{ h.notas.historia }}</td>
+            <td>{{ h.notas.educacao_religiosa }}</td>
+            <td rowspan="2" class="centro">{% if h.config %}{{ h.config.ch_anual }}{% endif %}</td>
+            <td rowspan="5" class="centro">{% if h.apto %}APTO{% else %}{{ h.registro.resultado|upper }}{% endif %}</td>
+          </tr>
+          <tr>
+            <th class="rotulo">CARGA HORÁRIA</th>
+            <td colspan="9"></td>
+          </tr>
+          <tr>
+            <th class="rotulo">FALTAS (HORAS)</th>
+            <td colspan="9">{{ h.faltas_horas }}</td>
+            <td></td>
+          </tr>
+          <tr>
+            <th class="rotulo">ESTABELECIMENTO:</th>
+            <td colspan="5">{{ h.registro.escola|upper }}</td>
+            <th colspan="2" class="rotulo menor">MUNICÍPIO/ESTADO:</th>
+            <td colspan="3">{{ h.registro.municipio|upper }}/{{ h.registro.uf|upper }}</td>
+          </tr>
+          <tr>
+            <th class="rotulo">DIAS LETIVOS ANUAIS:</th>
+            <td>{% if h.config %}{{ h.config.dias_letivos }}{% endif %}</td>
+            <th colspan="2" class="rotulo menor">MÍNIMO PARA PROMOÇÃO:</th>
+            <td colspan="2">{% if h.config %}{{ h.config.media_minima }}{% endif %}</td>
+            <th colspan="2" class="rotulo menor">CARGA HORÁRIA ANUAL:</th>
+            <td colspan="3">{% if h.config %}{{ h.config.ch_anual }}{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="13" class="centro">SEM REGISTROS ACADÊMICOS CADASTRADOS</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
-  <div class="assinaturas">
-    <div>________________________________<br>SECRETÁRIO(A)</div>
-    <div>MONTES CLAROS/MG</div>
-    <div>________________________________<br>DIRETOR(A)</div>
+    <aside class="referencias">
+      <h3>OBSERVAÇÕES:</h3>
+      <p>O Ensino Fundamental organizado em anos iniciais/anos finais conforme LDBEN nº 9394/96, Lei Federal nº 11.274 de 06 de Fevereiro de 2006 e Lei Municipal nº 3.885 de 20 de Dezembro de 2007 com duração de 09 (nove) anos.</p>
+      <p><b>Anos Iniciais – 1º, 2º, 3º, 4º e 5º anos</b><br>
+      • A avaliação é processual e qualitativa<br>
+      • Ao final do 3º e ou 5º ano o aluno que não tenha adquirido as competências e habilidades necessárias à sua formação, deverá permanecer, no máximo por um período de até mais um ano.<br>
+      • Frequência: para fins de aprovação será exigido o mínimo de 75% de carga horária de cada ano.</p>
+      <p><b>Anos Finais: 6º, 7º, 8º e 9º anos</b><br>
+      • Progressão Parcial – O aluno poderá ficar retido em até 02 (duas) disciplinas, do 6º ao 8º ano.</p>
+      <p><b>Referencial para preenchimento dos campos ÁREAS DE CONHECIMENTO: Nos anos de 2001 a 2009</b><br>
+      N1 - Alcançou satisfatoriamente os objetivos propostos;<br>
+      N2 - Alcançou parcialmente os objetivos propostos;<br>
+      N3 - Precisa melhorar para alcançar os objetivos propostos.</p>
+      <p><b>Nos anos de 2010 a 2015</b><br>
+      N3 - Alcançou satisfatoriamente os objetivos propostos;<br>
+      N2 - Alcançou parcialmente os objetivos propostos;<br>
+      N1 - Precisa melhorar para alcançar os objetivos propostos.</p>
+      <p><b>Ano 2016 – Registro de Avaliação da Aprendizagem</b><br>
+      N5 - AVANÇADO (90 a 100)<br>
+      N4 - INTERMEDIÁRIO (70 a 89)<br>
+      N3 - BÁSICO (60 a 69)<br>
+      N2 - CRÍTICO (30 a 59)<br>
+      N1 - MUITO CRÍTICO (0 a 29)</p>
+      <p><b>A partir de 2017</b><br>
+      Aproveitamento de 0 a 100 como forma de registro, sendo exigido no mínimo 60% para promoção no 3º e 5º anos e regime de progressão continuada nos 1º, 2º e 4º anos.</p>
+      <p><b>Ano 2020:</b> atividades não presenciais e registros conforme orientações SME do período.</p>
+    </aside>
   </div>
+
+  <section class="obs-final">
+    <b>OBSERVAÇÕES:</b>
+    <span>INFORMAMOS QUE O(A) ALUNO(A) ENCONTRA-SE APTO(A) À CONTINUIDADE DOS ESTUDOS, CONFORME REGISTROS ACADÊMICOS ACIMA.</span>
+  </section>
+
+  <footer class="rodape-historico">
+    <div class="assinatura"><span></span>ASSINATURA DO(A) SECRETÁRIO(A) Nº REG. OU AUTORIZAÇÃO</div>
+    <div class="assinatura"><span></span>ASSINATURA DO(A) DIRETOR(A) – Nº REG. OU AUTORIZAÇÃO</div>
+    <div class="expedicao">MONTES CLAROS/MG - {% now "d/m/Y" %}<br><small>MUNICÍPIO E DATA DE EXPEDIÇÃO</small></div>
+  </footer>
 </article>
 {% endblock %}
