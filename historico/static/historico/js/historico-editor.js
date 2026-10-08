@@ -121,7 +121,8 @@
   function recalcSummary() {
     const grades = [...root.querySelectorAll("[data-role='nota']")]
       .map((cell) => parseNumber(cleanText(cell)))
-      .filter((value) => value !== null);
+      .filter((value) => value !== null)
+      .map((value) => (value > 10 ? value / 10 : value));
 
     const loads = [...root.querySelectorAll("[data-role='carga-horaria-total']")]
       .map((cell) => parseNumber(cleanText(cell)))
