@@ -124,8 +124,7 @@ def salvar_historico(request, codigo):
         if alterados:
             aluno.save(update_fields=alterados)
 
-        registros_payload = payload.get("registros") or []
-        for item in registros_payload:
+        for item in payload.get("registros") or []:
             try:
                 registro_id = int(item.get("id"))
             except (TypeError, ValueError):
@@ -166,14 +165,27 @@ def salvar_historico(request, codigo):
                 registro.save(update_fields=campos_alterados)
 
             notas = item.get("notas") or {}
-            for componente, valor in notas.items():
+            for componente, dados_nota in notas.items():
                 if componente not in componentes_validos:
                     continue
+
+                if isinstance(dados_nota, dict):
+                    valor = dados_nota.get("valor", "")
+                    carga_horaria = dados_nota.get("carga_horaria", "")
+                else:
+                    valor = dados_nota
+                    carga_horaria = ""
+
                 Nota.objects.update_or_create(
                     registro=registro,
                     componente=componente,
                     defaults={
-                        "valor": _texto_limitado(Nota, "valor", valor)
+                        "valor": _texto_limitado(Nota, "valor", valor),
+                        "carga_horaria": _texto_limitado(
+                            Nota,
+                            "carga_horaria",
+                            carga_horaria,
+                        ),
                     },
                 )
 
