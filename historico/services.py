@@ -69,8 +69,6 @@ def avaliar_media(registro, config):
     if not valores:
         return ""
 
-    # Escalas históricas N1/N2/N3 são qualitativas e não devem ser
-    # comparadas matematicamente com a média mínima numérica.
     if max(valores) <= 5:
         return ""
 
@@ -91,7 +89,11 @@ def historico_do_aluno(aluno):
     saida = []
     for registro in registros:
         config = ConfiguracaoAno.objects.filter(ano=registro.ano).first()
-        notas = {nota.componente: nota.valor for nota in registro.notas.all()}
+        notas_qs = list(registro.notas.all())
+        notas = {nota.componente: nota.valor for nota in notas_qs}
+        cargas_componentes = {
+            nota.componente: nota.carga_horaria for nota in notas_qs
+        }
         media_minima = media_minima_percentual(config)
 
         saida.append(
@@ -99,6 +101,7 @@ def historico_do_aluno(aluno):
                 "registro": registro,
                 "config": config,
                 "notas": notas,
+                "cargas_componentes": cargas_componentes,
                 "notas_ordenadas": [
                     (componente, notas.get(componente, ""))
                     for componente in ORDEM_COMPONENTES
