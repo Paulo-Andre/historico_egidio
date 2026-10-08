@@ -107,6 +107,7 @@ class Nota(models.Model):
     )
     componente = models.CharField(max_length=40, choices=COMPONENTES)
     valor = models.CharField(max_length=40, blank=True)
+    carga_horaria = models.CharField(max_length=30, blank=True)
 
     class Meta:
         constraints = [
