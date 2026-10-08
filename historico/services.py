@@ -1,5 +1,7 @@
 from decimal import Decimal, InvalidOperation
+
 from .models import ConfiguracaoAno, Nota
+
 
 ORDEM_COMPONENTES = [
     Nota.LINGUA_PORTUGUESA,
@@ -13,50 +15,71 @@ ORDEM_COMPONENTES = [
     Nota.EDUCACAO_RELIGIOSA,
 ]
 
+
 def _numero(valor):
     if valor in (None, "", "-", "*"):
         return None
+    texto = str(valor).replace("%", "").replace(",", ".").strip()
     try:
-        return Decimal(str(valor).replace("%", "").replace(",", ".").strip())
+        return Decimal(texto)
     except (InvalidOperation, ValueError):
         return None
 
-def _media_percentual(config):
+
+def media_minima_percentual(config):
     if not config or not config.media_minima:
         return None
-    n = _numero(config.media_minima)
-    if n is None:
+    numero = _numero(config.media_minima)
+    if numero is None:
         return None
-    return n * 100 if n <= 1 else n
+    return numero * 100 if numero <= 1 else numero
+
 
 def situacao_apta(resultado):
-    r = (resultado or "").strip().upper()
-    return r in {"APROVADO", "EM CONTINUIDADE", "EM CURSO", "APTO", "APTA"}
+    resultado_normalizado = (resultado or "").strip().upper()
+    return resultado_normalizado in {
+        "APROVADO",
+        "EM CONTINUIDADE",
+        "EM CURSO",
+        "APTO",
+        "APTA",
+    }
+
 
 def faltas_em_horas(registro):
     if registro.ano == 2020:
         return "*"
-    n = _numero(registro.faltas)
-    if n is None:
+    numero = _numero(registro.faltas)
+    if numero is None:
         return ""
-    # A planilha original converte o total de faltas em aulas para horas multiplicando por 4.
-    return f"{int(n * 4)}:00"
+    return f"{int(numero * 4)}:00"
+
 
 def avaliar_media(registro, config):
-    media = _media_percentual(config)
+    media = media_minima_percentual(config)
     if media is None:
         return ""
+
     valores = []
     for nota in registro.notas.all():
-        n = _numero(nota.valor)
-        if n is not None:
-            valores.append(n)
+        numero = _numero(nota.valor)
+        if numero is not None:
+            valores.append(numero)
+
     if not valores:
         return ""
-    # Escalas antigas N1/N2/N3 são qualitativas e não entram neste teste numérico.
-    if any(v <= 3 for v in valores) and max(valores) <= 3:
+
+    # Escalas históricas N1/N2/N3 são qualitativas e não devem ser
+    # comparadas matematicamente com a média mínima numérica.
+    if max(valores) <= 5:
         return ""
-    return "ALUNO DENTRO DA MÉDIA" if all(v >= media for v in valores) else "ALUNO ABAIXO DA MÉDIA"
+
+    return (
+        "ALUNO DENTRO DA MÉDIA"
+        if all(valor >= media for valor in valores)
+        else "ALUNO ABAIXO DA MÉDIA"
+    )
+
 
 def historico_do_aluno(aluno):
     registros = (
@@ -64,17 +87,34 @@ def historico_do_aluno(aluno):
         .prefetch_related("notas")
         .order_by("ano", "serie", "id")
     )
+
     saida = []
     for registro in registros:
         config = ConfiguracaoAno.objects.filter(ano=registro.ano).first()
-        notas = {n.componente: n.valor for n in registro.notas.all()}
-        saida.append({
-            "registro": registro,
-            "config": config,
-            "notas": notas,
-            "notas_ordenadas": [(c, notas.get(c, "")) for c in ORDEM_COMPONENTES],
-            "apto": situacao_apta(registro.resultado),
-            "faltas_horas": faltas_em_horas(registro),
-            "avaliacao_media": avaliar_media(registro, config),
-        })
+        notas = {nota.componente: nota.valor for nota in registro.notas.all()}
+        media_minima = media_minima_percentual(config)
+
+        saida.append(
+            {
+                "registro": registro,
+                "config": config,
+                "notas": notas,
+                "notas_ordenadas": [
+                    (componente, notas.get(componente, ""))
+                    for componente in ORDEM_COMPONENTES
+                ],
+                "apto": situacao_apta(registro.resultado),
+                "faltas_horas": faltas_em_horas(registro),
+                "frequencia": registro.frequencia,
+                "carga_horaria": (
+                    registro.carga_horaria
+                    or (config.ch_anual if config else "")
+                ),
+                "media_minima_num": (
+                    str(media_minima) if media_minima is not None else ""
+                ),
+                "avaliacao_media": avaliar_media(registro, config),
+            }
+        )
+
     return saida
