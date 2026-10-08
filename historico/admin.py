@@ -55,6 +55,6 @@ class RegistroAcademicoAdmin(admin.ModelAdmin):
 
 @admin.register(Nota)
 class NotaAdmin(admin.ModelAdmin):
-    list_display = ("registro", "componente", "valor")
+    list_display = ("registro", "componente", "valor", "carga_horaria")
     list_filter = ("componente",)
     search_fields = ("registro__aluno__nome", "registro__nome_original")
