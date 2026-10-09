@@ -11,21 +11,20 @@
 <div hidden>{% csrf_token %}</div>
 
 <section class="editor-toolbar" aria-label="Ferramentas do histórico">
-  <div>
-    <strong>Histórico Escolar — modelo oficial</strong>
+  <div class="editor-toolbar__status">
+    <strong>Histórico oficial</strong>
     {% if can_edit %}
       <span class="save-status" data-save-status>Pronto para editar</span>
     {% else %}
-      <span class="save-status">Modo de visualização</span>
+      <span class="save-status">Visualização</span>
     {% endif %}
   </div>
-
   <div class="editor-toolbar__actions">
     <a href="{% url 'historico:aluno' aluno.codigo %}">Voltar</a>
     {% if can_edit %}
-      <button type="button" class="primary" data-action="save">Salvar alterações</button>
+      <button type="button" class="primary" data-action="save">Salvar</button>
     {% endif %}
-    <button type="button" onclick="window.print()">Imprimir / Salvar PDF</button>
+    <button type="button" onclick="window.print()">Imprimir / PDF</button>
   </div>
 </section>
 
@@ -36,178 +35,224 @@
     data-can-edit="{{ can_edit|yesno:'1,0' }}"
     data-save-url="{% url 'historico:salvar_historico' aluno.codigo %}"
   >
-    <div class="official-frame">
-      <img
-        class="institution-letterhead"
-        data-letterhead
-        src="{% static 'historico/img/timbragem_historico_egidio.jpeg' %}"
-        data-fallback-b64-url="{% static 'historico/img/timbragem_historico_egidio.b64' %}"
-        alt="Timbragem oficial da Escola Municipal Egídio Cordeiro Aquino"
-      >
+    <div class="official-page-border">
+      <header class="official-letterhead">
+        <img
+          data-letterhead
+          src="{% static 'historico/img/timbragem_historico_egidio.jpeg' %}"
+          data-fallback-b64-url="{% static 'historico/img/timbragem_historico_egidio.b64' %}"
+          alt="Cabeçalho oficial da Escola Municipal Egídio Cordeiro Aquino"
+        >
+      </header>
 
-      <section class="certificado-oficial">
+      <section class="certificate-section">
         <h1>CERTIFICADO DE CONCLUSÃO</h1>
-
-        <div class="cert-row cert-name">
-          <span>Certificamos que</span>
-          <span class="cert-value" contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="aluno" data-field="nome">{{ aluno.nome|upper }}</span>
-        </div>
-
-        <div class="cert-row cert-personal">
-          <span>Natural de</span>
-          <span class="cert-value" contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="aluno" data-field="naturalidade">{{ aluno.naturalidade|upper }}</span>
-          <span>UF</span>
-          <span class="cert-value center" contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="aluno" data-field="uf">{{ aluno.uf|upper }}</span>
-          <span>Nacionalidade</span>
-          <span class="cert-value center" contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="aluno" data-field="nacionalidade">{{ aluno.nacionalidade|upper }}</span>
-          <span>Sexo</span>
-          <span class="cert-value" contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="aluno" data-field="sexo">{{ aluno.sexo|upper }}</span>
-        </div>
-
-        <span hidden data-model="aluno" data-field="nascimento">{{ aluno.nascimento }}</span>
-        <div class="cert-row cert-birth">
-          <span>Nascido(a) em</span>
-          <span class="cert-value center" contenteditable="{{ can_edit|yesno:'true,false' }}" data-date-part="dia">{{ documento.nascimento.dia }}</span>
-          <span>de</span>
-          <span class="cert-value center" contenteditable="{{ can_edit|yesno:'true,false' }}" data-date-part="mes">{{ documento.nascimento.mes }}</span>
-          <span>de</span>
-          <span class="cert-value center" contenteditable="{{ can_edit|yesno:'true,false' }}" data-date-part="ano">{{ documento.nascimento.ano }}</span>
-          <span>Filho(a) de</span>
-          <span class="cert-value" contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="aluno" data-field="pai">{{ aluno.pai|upper }}</span>
-        </div>
-
-        <div class="cert-row cert-mother">
-          <span>e de</span>
-          <span class="cert-value" contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="aluno" data-field="mae">{{ aluno.mae|upper }}</span>
-          <span>Carteira de Identidade nº</span>
-          <span class="cert-value center" contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="aluno" data-field="identidade" data-placeholder="************************">{{ documento.identidade }}</span>
-        </div>
-
-        <div class="cert-row cert-conclusion">
-          <span>Órgão expedidor/Estado</span>
-          <span class="cert-value center" contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="aluno" data-field="orgao_expedidor" data-placeholder="************************">{{ documento.orgao_expedidor }}</span>
-          <span>concluiu em</span>
-          <span class="cert-value center" contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="aluno" data-field="data_conclusao" data-placeholder="__/__/____">{{ documento.data_conclusao }}</span>
-          <span>o</span>
-          <span class="cert-value center" contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="aluno" data-field="ultima_serie_concluida">{{ documento.serie_conclusao }}</span>
-          <span>Ano do Ensino Fundamental.</span>
-        </div>
+        <table class="certificate-table">
+          <tbody>
+            <tr>
+              <th>Certificamos que</th>
+              <td colspan="11"
+                  class="value strong uppercase"
+                  contenteditable="{{ can_edit|yesno:'true,false' }}"
+                  data-model="aluno"
+                  data-field="nome">{{ aluno.nome }}</td>
+            </tr>
+            <tr>
+              <th>Natural de</th>
+              <td colspan="4" class="value uppercase"
+                  contenteditable="{{ can_edit|yesno:'true,false' }}"
+                  data-model="aluno"
+                  data-field="naturalidade">{{ aluno.naturalidade }}</td>
+              <th>UF</th>
+              <td class="value uppercase"
+                  contenteditable="{{ can_edit|yesno:'true,false' }}"
+                  data-model="aluno"
+                  data-field="uf">{{ aluno.uf }}</td>
+              <th>Nacionalidade</th>
+              <td colspan="2" class="value uppercase"
+                  contenteditable="{{ can_edit|yesno:'true,false' }}"
+                  data-model="aluno"
+                  data-field="nacionalidade">{{ aluno.nacionalidade }}</td>
+              <th>Sexo</th>
+              <td class="value uppercase"
+                  contenteditable="{{ can_edit|yesno:'true,false' }}"
+                  data-model="aluno"
+                  data-field="sexo">{{ aluno.sexo }}</td>
+            </tr>
+            <tr>
+              <th>Nascido(a) em</th>
+              <td class="value center">{{ nascimento.dia }}</td>
+              <th>de</th>
+              <td colspan="2" class="value center uppercase">{{ nascimento.mes }}</td>
+              <th>de</th>
+              <td class="value center">{{ nascimento.ano }}</td>
+              <th>Filho(a) de</th>
+              <td colspan="4" class="value uppercase"
+                  contenteditable="{{ can_edit|yesno:'true,false' }}"
+                  data-model="aluno"
+                  data-field="pai">{{ aluno.pai }}</td>
+            </tr>
+            <tr>
+              <th>e de</th>
+              <td colspan="6" class="value uppercase"
+                  contenteditable="{{ can_edit|yesno:'true,false' }}"
+                  data-model="aluno"
+                  data-field="mae">{{ aluno.mae }}</td>
+              <th>Carteira de Identidade nº</th>
+              <td colspan="4" class="value uppercase"
+                  contenteditable="{{ can_edit|yesno:'true,false' }}"
+                  data-model="aluno"
+                  data-field="identidade">{{ aluno.identidade }}</td>
+            </tr>
+            <tr>
+              <th>Órgão expedidor/Estado</th>
+              <td colspan="5" class="value uppercase"
+                  contenteditable="{{ can_edit|yesno:'true,false' }}"
+                  data-model="aluno"
+                  data-field="orgao_expedidor">{{ aluno.orgao_expedidor }}</td>
+              <th>concluiu em</th>
+              <td colspan="2" class="value center"
+                  contenteditable="{{ can_edit|yesno:'true,false' }}"
+                  data-model="aluno"
+                  data-field="data_conclusao">{{ data_conclusao }}</td>
+              <th>o</th>
+              <td class="value center strong">5º</td>
+              <td class="plain-cell">Ano do Ensino Fundamental</td>
+            </tr>
+          </tbody>
+        </table>
       </section>
 
-      <section class="historico-titulo">
-        HISTÓRICO ESCOLAR – ENSINO FUNDAMENTAL<br>
-        ANOS INICIAIS
+      <section class="history-title">
+        <strong>HISTÓRICO ESCOLAR – ENSINO FUNDAMENTAL</strong>
+        <span>ANOS INICIAIS</span>
       </section>
 
-      <section class="historico-corpo">
-        <div class="historico-grade-wrap">
-          <table class="historico-grade" aria-label="Histórico Escolar - Anos Iniciais">
+      <section class="history-frame">
+        <div class="history-left">
+          <table class="official-history-table">
             <colgroup>
-              <col class="col-etapa">
-              <col class="col-ano">
-              <col class="col-rotulo">
-              <col span="9" class="col-disciplina">
-              <col class="col-carga-total">
-              <col class="col-situacao">
+              <col class="c-etapa">
+              <col class="c-ano">
+              <col class="c-rotulo">
+              <col class="c-disc">
+              <col class="c-disc">
+              <col class="c-disc">
+              <col class="c-disc">
+              <col class="c-disc">
+              <col class="c-disc">
+              <col class="c-disc">
+              <col class="c-disc">
+              <col class="c-disc">
+              <col class="c-total">
+              <col class="c-status">
             </colgroup>
             <thead>
-              <tr class="cabecalho-area">
+              <tr class="knowledge-row">
                 <th colspan="3">ÁREAS DO CONHECIMENTO</th>
-                <th colspan="4" class="vertical">LINGUAGENS</th>
-                <th class="vertical">MATEMÁTICA</th>
-                <th class="vertical">CIÊNCIAS DA NATUREZA</th>
-                <th colspan="2" class="vertical">CIÊNCIAS HUMANAS</th>
-                <th class="vertical">ENSINO RELIGIOSO</th>
-                <th rowspan="2" class="vertical">TOTAL CARGA HORÁRIA</th>
-                <th rowspan="2" class="vertical">SITUAÇÃO DO ALUNO</th>
+                <th colspan="4" class="vertical-category">LINGUAGENS</th>
+                <th class="vertical-category">MATEMÁTICA</th>
+                <th class="vertical-category">CIÊNCIAS DA<br>NATUREZA</th>
+                <th colspan="2" class="vertical-category">CIÊNCIAS<br>HUMANAS</th>
+                <th class="vertical-category">ENSINO<br>RELIGIOSO</th>
+                <th rowspan="2" class="vertical-subject">TOTAL CARGA HORÁRIA</th>
+                <th rowspan="2" class="vertical-subject">SITUAÇÃO DO ALUNO</th>
               </tr>
-              <tr class="cabecalho-componentes">
+              <tr class="subjects-row">
                 <th colspan="3">COMPONENTES CURRICULARES</th>
-                <th class="vertical">LÍNGUA PORTUGUESA/ LITERATURA</th>
-                <th class="vertical">ARTE</th>
-                <th class="vertical">EDUCAÇÃO FÍSICA</th>
-                <th class="vertical">LÍNGUA INGLESA</th>
-                <th class="vertical">MATEMÁTICA</th>
-                <th class="vertical">CIÊNCIAS</th>
-                <th class="vertical">GEOGRAFIA</th>
-                <th class="vertical">HISTÓRIA</th>
-                <th class="vertical">ENSINO RELIGIOSO</th>
+                <th class="vertical-subject">LÍNGUA PORTUGUESA / LITERATURA</th>
+                <th class="vertical-subject">ARTE</th>
+                <th class="vertical-subject">EDUCAÇÃO FÍSICA</th>
+                <th class="vertical-subject">LÍNGUA INGLESA</th>
+                <th class="vertical-subject">MATEMÁTICA</th>
+                <th class="vertical-subject">CIÊNCIAS</th>
+                <th class="vertical-subject">GEOGRAFIA</th>
+                <th class="vertical-subject">HISTÓRIA</th>
+                <th class="vertical-subject">ENSINO RELIGIOSO</th>
               </tr>
             </thead>
 
-            <tbody>
-              {% for slot in documento.slots %}
-                <tr class="linha-historico {% if slot.faltante %}slot-faltante{% endif %}" {% if slot.registro %}data-registro-bloco data-registro-id="{{ slot.registro_id }}" data-media-minima="{{ slot.media_minima_num }}"{% endif %}>
-                  {% if forloop.first %}
-                    <th rowspan="25" class="etapa-vertical">ANOS INICIAIS</th>
+            {% for h in historico %}
+            <tbody
+              class="year-block"
+              {% if h.registro %}
+                data-registro-bloco
+                data-registro-id="{{ h.registro.id }}"
+                data-media-minima="{{ h.media_minima_num }}"
+              {% endif %}
+            >
+              <tr>
+                {% if forloop.first %}
+                  <th rowspan="25" class="stage-cell">ANOS INICIAIS</th>
+                {% endif %}
+                <th rowspan="5" class="year-cell">{{ h.serie }}º ANO: {{ h.ano }}</th>
+                <th class="row-label">APROVEITAMENTO</th>
+                <td class="grade-cell" {% if can_edit and h.registro %}contenteditable="true"{% endif %} data-role="nota" data-nota="lingua_portuguesa">{{ h.notas.lingua_portuguesa }}</td>
+                <td class="grade-cell" {% if can_edit and h.registro %}contenteditable="true"{% endif %} data-role="nota" data-nota="arte">{{ h.notas.arte }}</td>
+                <td class="grade-cell" {% if can_edit and h.registro %}contenteditable="true"{% endif %} data-role="nota" data-nota="educacao_fisica">{{ h.notas.educacao_fisica }}</td>
+                <td class="grade-cell" {% if can_edit and h.registro %}contenteditable="true"{% endif %} data-role="nota" data-nota="lingua_inglesa">{{ h.notas.lingua_inglesa }}</td>
+                <td class="grade-cell" {% if can_edit and h.registro %}contenteditable="true"{% endif %} data-role="nota" data-nota="matematica">{{ h.notas.matematica }}</td>
+                <td class="grade-cell" {% if can_edit and h.registro %}contenteditable="true"{% endif %} data-role="nota" data-nota="ciencias">{{ h.notas.ciencias }}</td>
+                <td class="grade-cell" {% if can_edit and h.registro %}contenteditable="true"{% endif %} data-role="nota" data-nota="geografia">{{ h.notas.geografia }}</td>
+                <td class="grade-cell" {% if can_edit and h.registro %}contenteditable="true"{% endif %} data-role="nota" data-nota="historia">{{ h.notas.historia }}</td>
+                <td class="grade-cell" {% if can_edit and h.registro %}contenteditable="true"{% endif %} data-role="nota" data-nota="educacao_religiosa">{{ h.notas.educacao_religiosa }}</td>
+                <td rowspan="5" class="total-cell"
+                    {% if can_edit and h.registro %}contenteditable="true"{% endif %}
+                    {% if h.registro %}data-model="registro" data-field="carga_horaria" data-role="carga-horaria-total"{% endif %}>{{ h.carga_horaria }}</td>
+                <td rowspan="5" class="status-cell"
+                    {% if can_edit and h.registro %}contenteditable="true"{% endif %}
+                    {% if h.registro %}data-model="registro" data-field="resultado"{% endif %}>{{ h.situacao }}</td>
+              </tr>
+              <tr>
+                <th class="row-label">CARGA HORÁRIA</th>
+                <td colspan="9" class="merged-value"
+                    {% if can_edit and h.registro %}contenteditable="true"{% endif %}
+                    {% if h.registro %}data-model="registro" data-field="carga_horaria" data-role="carga-horaria-main"{% endif %}>{{ h.carga_horaria }}</td>
+              </tr>
+              <tr>
+                <th class="row-label">FALTAS (HORAS)</th>
+                <td colspan="9" class="merged-value">{{ h.faltas_horas }}</td>
+              </tr>
+              <tr>
+                <th class="row-label">ESTABELECIMENTO:</th>
+                <td colspan="5" class="school-cell uppercase"
+                    {% if can_edit and h.registro %}contenteditable="true"{% endif %}
+                    {% if h.registro %}data-model="registro" data-field="escola"{% endif %}>{{ h.escola }}</td>
+                <th colspan="2" class="inline-label">MUNICÍPIO/ESTADO:</th>
+                <td colspan="2" class="municipality-cell uppercase">
+                  {% if h.registro %}
+                    <span contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="registro" data-field="municipio">{{ h.municipio }}</span>{% if h.uf %}/<span contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="registro" data-field="uf">{{ h.uf }}</span>{% endif %}
+                  {% else %}
+                    {{ h.municipio }}
                   {% endif %}
-                  <th rowspan="5" class="ano-vertical">{{ slot.serie }}º ANO: {{ slot.ano }}</th>
-                  <th class="rotulo-linha">APROVEITAMENTO</th>
-                  <td class="nota-cell" contenteditable="{% if can_edit and slot.registro %}true{% else %}false{% endif %}" data-role="nota" data-nota="lingua_portuguesa">{{ slot.notas.lingua_portuguesa }}</td>
-                  <td class="nota-cell" contenteditable="{% if can_edit and slot.registro %}true{% else %}false{% endif %}" data-role="nota" data-nota="arte">{{ slot.notas.arte }}</td>
-                  <td class="nota-cell" contenteditable="{% if can_edit and slot.registro %}true{% else %}false{% endif %}" data-role="nota" data-nota="educacao_fisica">{{ slot.notas.educacao_fisica }}</td>
-                  <td class="nota-cell" contenteditable="{% if can_edit and slot.registro %}true{% else %}false{% endif %}" data-role="nota" data-nota="lingua_inglesa">{{ slot.notas.lingua_inglesa }}</td>
-                  <td class="nota-cell" contenteditable="{% if can_edit and slot.registro %}true{% else %}false{% endif %}" data-role="nota" data-nota="matematica">{{ slot.notas.matematica }}</td>
-                  <td class="nota-cell" contenteditable="{% if can_edit and slot.registro %}true{% else %}false{% endif %}" data-role="nota" data-nota="ciencias">{{ slot.notas.ciencias }}</td>
-                  <td class="nota-cell" contenteditable="{% if can_edit and slot.registro %}true{% else %}false{% endif %}" data-role="nota" data-nota="geografia">{{ slot.notas.geografia }}</td>
-                  <td class="nota-cell" contenteditable="{% if can_edit and slot.registro %}true{% else %}false{% endif %}" data-role="nota" data-nota="historia">{{ slot.notas.historia }}</td>
-                  <td class="nota-cell" contenteditable="{% if can_edit and slot.registro %}true{% else %}false{% endif %}" data-role="nota" data-nota="educacao_religiosa">{{ slot.notas.educacao_religiosa }}</td>
-                  <td></td>
-                  <td rowspan="5" class="situacao-vertical" data-role="situacao">{{ slot.situacao }}</td>
-                </tr>
-
-                <tr class="linha-historico {% if slot.faltante %}slot-faltante{% endif %}" {% if slot.registro %}data-parent-registro="{{ slot.registro_id }}"{% endif %}>
-                  <th class="rotulo-linha">CARGA HORÁRIA</th>
-                  <td colspan="9" class="valor-central" contenteditable="{% if can_edit and slot.registro %}true{% else %}false{% endif %}" {% if slot.registro %}data-model="registro" data-field="carga_horaria" data-role="carga-horaria-total"{% endif %}>{{ slot.carga_horaria }}</td>
-                  <td class="valor-central">{{ slot.carga_horaria }}</td>
-                </tr>
-
-                <tr class="linha-historico {% if slot.faltante %}slot-faltante{% endif %}">
-                  <th class="rotulo-linha">FALTAS (HORAS)</th>
-                  <td colspan="9" class="valor-central">{{ slot.faltas_horas }}</td>
-                  <td></td>
-                </tr>
-
-                <tr class="linha-historico {% if slot.faltante %}slot-faltante{% endif %}">
-                  <th class="rotulo-linha">ESTABELECIMENTO{% if not slot.faltante %}:{% endif %}</th>
-                  <td colspan="5" class="texto-escola">
-                    <span contenteditable="{% if can_edit and slot.registro %}true{% else %}false{% endif %}" {% if slot.registro %}data-model="registro" data-field="escola"{% endif %}>{{ slot.escola }}</span>
-                  </td>
-                  <th colspan="2" class="rotulo-mini">MUNICÍPIO/ESTADO:</th>
-                  <td colspan="2" class="texto-escola">
-                    <span contenteditable="{% if can_edit and slot.registro %}true{% else %}false{% endif %}" {% if slot.registro %}data-model="registro" data-field="municipio"{% endif %}>{{ slot.municipio }}</span>{% if slot.uf and not slot.faltante %}/<span contenteditable="{% if can_edit and slot.registro %}true{% else %}false{% endif %}" {% if slot.registro %}data-model="registro" data-field="uf"{% endif %}>{{ slot.uf }}</span>{% endif %}
-                  </td>
-                  <td></td>
-                </tr>
-
-                <tr class="linha-historico {% if slot.faltante %}slot-faltante{% endif %}">
-                  <th class="rotulo-linha">DIAS LETIVOS ANUAIS:</th>
-                  <td>{{ slot.dias_letivos }}</td>
-                  <th colspan="2" class="rotulo-mini">MÍNIMO PARA PROMOÇÃO:</th>
-                  <td colspan="2">{{ slot.media_minima }}</td>
-                  <th colspan="2" class="rotulo-mini">CARGA HORÁRIA ANUAL:</th>
-                  <td>{{ slot.carga_horaria }}</td>
-                  <td></td>
-                </tr>
-              {% endfor %}
+                </td>
+              </tr>
+              <tr>
+                <th class="row-label">DIAS LETIVOS ANUAIS:</th>
+                <td class="meta-value">{{ h.dias_letivos }}</td>
+                <th colspan="3" class="inline-label">MÍNIMO PARA PROMOÇÃO:</th>
+                <td class="meta-value">{{ h.media_minima }}</td>
+                <th colspan="3" class="inline-label">CARGA HORÁRIA ANUAL:</th>
+                <td class="meta-value">{{ h.carga_horaria }}</td>
+              </tr>
             </tbody>
+            {% endfor %}
           </table>
         </div>
 
-        <aside class="referenciais-legais">
+        <aside class="legal-column">
           <h3>OBSERVAÇÕES:</h3>
-
           <p>O Ensino Fundamental organizado em anos iniciais/anos finais conforme LDBEN nº 9394/96, Lei Federal nº 11.274 de 06 de Fevereiro de 2006 e Lei Municipal nº 3.885 de 20 de Dezembro de 2007 com duração de 09 (nove) anos.</p>
 
-          <p><b>Anos Iniciais – 1º, 2º, 3º, 4º e 5º anos</b><br>
-          • A avaliação é processual e qualitativa<br>
+          <p class="legal-center"><b>Anos Iniciais – 1º, 2º, 3º, 4º e 5º anos</b></p>
+          <p>• A avaliação é processual e qualitativa<br>
           • Ao final do 3º e ou 5º ano o aluno que não tenha adquirido as competências e habilidades necessárias à sua formação, deverá permanecer, no máximo por um período de até mais um ano.<br>
           • Frequência: para fins de aprovação será exigido o mínimo de 75% de carga horária de cada ano.</p>
 
-          <p><b>Anos Finais: 6º, 7º, 8º e 9º anos</b><br>
-          • Progressão Parcial – O aluno poderá ficar retido em até 02 (duas) disciplinas, do 6º ao 8º ano.</p>
+          <p class="legal-center"><b>Anos Finais: 6º, 7º, 8º e 9º anos</b></p>
+          <p>• Progressão Parcial – O aluno poderá ficar retido em até 02 (duas) disciplinas, do 6º ao 8º ano.</p>
 
-          <p><b>Referencial para preenchimento dos campos ÁREAS DE CONHECIMENTO:<br>Nos anos de 2001 a 2009</b><br>
+          <p><b>Referencial para preenchimento dos campos ÁREAS DE CONHECIMENTO: Nos anos de 2001 a 2009</b><br>
           N1- Alcançou satisfatoriamente os objetivos propostos<br>
           N2- Alcançou parcialmente os objetivos propostos<br>
           N3- Precisa melhorar para alcançar os objetivos propostos.</p>
@@ -217,51 +262,59 @@
           N2- Alcançou parcialmente os objetivos propostos<br>
           N1- Precisa melhorar para alcançar os objetivos Propostos.</p>
 
-          <p><b>Referencial para preenchimentos campos ÁREAS DE CONHECIMENTO:<br>Ano 2016</b><br>
+          <p><b>Referencial para preenchimentos campos ÁREAS DE CONHECIMENTO: Ano 2016</b><br>
           Registro de Avaliação da Aprendizagem-1º ao 5º ano - Ensino Fundamental<br>
-          N5-AVANÇADO - (90 a 100) Aluno que desenvolveu e consolidou as habilidades e competências previstas.<br>
+          N5- AVANÇADO - (90 a 100) Aluno que desenvolveu e consolidou as habilidades e competências previstas.<br>
           N4 - INTERMEDIÁRIO - (70 a 89) Aluno que desenvolveu as habilidades e competências previstas para a etapa.<br>
           N3 - BÁSICO - (60 a 69) Aluno que desenvolveu as habilidades e competências mínimas necessárias para a etapa.<br>
           N2 - CRÍTICO - (30 a 59) Aluno que se encontra no nível inicial da aprendizagem, apresentando poucas habilidades e competências sem garantir o mínimo necessário.<br>
           N1 - MUITO CRÍTICO - (0 a 29) Aluno que não desenvolveu as habilidades e competências previstas.</p>
 
-          <p><b>Referencial para preenchimento dos campos ÁREAS DE CONHECIMENTO:<br>A partir de 2017</b><br>
+          <div class="legal-divider">_______________________________________</div>
+
+          <p><b>Referencial para preenchimento dos campos ÁREAS DE CONHECIMENTO: A partir de 2017</b><br>
           “Orientação/ SME- 2017- Registro de Avaliação da Aprendizagem” Anos Iniciais do Ensino Fundamental: Aproveitamento de 0 a 100 como forma de registro, sendo exigido no mínimo 60% para promoção no 3º e 5º anos e regime de progressão continuada nos 1º, 2º e 4º anos, como garantia de promoção do aluno, ainda que obtiver nota inferior ao estabelecido.</p>
 
-          <p>“Referencial para preenchimento dos campos Áreas de Conhecimento – Ano 2020: “Orientações/SME-2020 – Registro de Avaliação da Aprendizagem” – Anos Iniciais do Ensino Fundamental.<br>
+          <p><b>Referencial para preenchimento dos campos Áreas de Conhecimento – Ano 2020:</b> “Orientações/SME-2020 – Registro de Avaliação da Aprendizagem” – Anos Iniciais do Ensino Fundamental.<br>
           - Lei Federal nº 14.040, de 19/8/2020;<br>
           - Resolução CME, nº 003, de 2020;<br>
           - Orientação/SME, de 20 de abril/2020;<br>
-          - Portaria/SME, nº 12, de 29/12/2020.”</p>
+          - Portaria/SME, nº 12, de 29/12/2020.</p>
         </aside>
       </section>
 
-      <section class="observacoes-finais">
-        <strong>OBSERVAÇÕES:</strong>
-        <div
-          class="observacao-texto"
-          contenteditable="{{ can_edit|yesno:'true,false' }}"
-          data-model="aluno"
-          data-field="observacao_historico"
-          data-multiline="1"
-        >{{ documento.observacao }}</div>
+      <section class="bottom-observation">
+        <div class="bottom-observation__label">OBSERVAÇÕES:</div>
+        <div class="bottom-observation__text"
+             contenteditable="{{ can_edit|yesno:'true,false' }}"
+             data-model="aluno"
+             data-field="observacao_historico"
+             data-multiline="1">{% if observacao_historico %}{{ observacao_historico }}{% else %}*INFORMAMOS QUE O(A) ALUNO(A) ENCONTRA-SE APTO(A) À CONTINUIDADE DOS ESTUDOS.{% endif %}</div>
       </section>
 
-      <footer class="rodape-oficial">
-        <div class="assinaturas">
-          <div class="assinatura-linha">ASSINATURA DO(A) SECRETÁRIO(A) Nº REG. OU AUTORIZAÇÃO</div>
-          <div class="assinatura-linha">ASSINATURA DO(A) DIRETOR(A) – Nº REG. OU AUTORIZAÇÃO</div>
+      <footer class="official-footer">
+        <div class="signature signature-left">
+          <span class="signature-line"></span>
+          ASSINATURA DO(A) SECRETÁRIO(A) Nº REG. OU AUTORIZAÇÃO
         </div>
-
-        <div class="data-expedicao">
-          <strong>
-            {{ documento.municipio_expedicao|upper }}/MG -
-            <span contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="aluno" data-field="data_expedicao">{{ documento.data_expedicao }}</span>
-          </strong>
+        <div class="signature signature-right">
+          <span class="signature-line"></span>
+          ASSINATURA DO(A) DIRETOR(A) – Nº REG. OU AUTORIZAÇÃO
+        </div>
+        <div class="issue-date">
+          <strong contenteditable="{{ can_edit|yesno:'true,false' }}"
+                  data-model="aluno"
+                  data-field="data_expedicao">MONTES CLAROS/MG - {{ data_expedicao }}</strong>
           <span>MUNICÍPIO E DATA DE EXPEDIÇÃO</span>
         </div>
       </footer>
     </div>
+
+    <section class="operator-summary screen-only">
+      <span>Média numérica: <strong data-summary-average>—</strong></span>
+      <span>Carga horária: <strong data-summary-load>—</strong></span>
+      <span>Alertas: <strong data-summary-alerts>0</strong></span>
+    </section>
   </article>
 </div>
 {% endblock %}
