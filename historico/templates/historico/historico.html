@@ -154,7 +154,7 @@
             <tbody>
               {% for h in historico %}
               <tr class="year-group-start"
-                  {% if h.registro %}data-registro-id="{{ h.registro.id }}" data-media-minima="{{ h.media_minima_num }}"{% endif %}>
+                  {% if h.registro %}data-registro-id="{{ h.registro.id }}" data-media-minima="{{ h.media_minima_num }}" data-serie="{{ h.serie }}"{% endif %}>
                 {% if forloop.first %}
                   <th rowspan="25" class="stage-cell">ANOS INICIAIS</th>
                 {% endif %}
