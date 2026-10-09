@@ -6,14 +6,9 @@
 
   const canEdit = root.dataset.canEdit === "1";
   const saveUrl = root.dataset.saveUrl || "";
-  const csrfToken = document.querySelector(
-    "input[name='csrfmiddlewaretoken']"
-  )?.value;
+  const csrfToken = document.querySelector("input[name='csrfmiddlewaretoken']")?.value;
   const saveStatus = document.querySelector("[data-save-status]");
   const saveButton = document.querySelector("[data-action='save']");
-  const avgOutput = document.querySelector("[data-summary-average]");
-  const loadOutput = document.querySelector("[data-summary-load]");
-  const alertOutput = document.querySelector("[data-summary-alerts]");
   const logo = document.querySelector("[data-letterhead]");
 
   let saveTimer = null;
@@ -33,128 +28,76 @@
 
   function thresholdForGrade(rawThreshold, grade) {
     let threshold = parseNumber(rawThreshold);
-    if (threshold === null) {
-      return grade > 10 ? 60 : 6;
-    }
-    if (threshold <= 1) {
-      return grade > 10 ? threshold * 100 : threshold * 10;
-    }
+    if (threshold === null) return grade > 10 ? 60 : 6;
+    if (threshold <= 1) return grade > 10 ? threshold * 100 : threshold * 10;
     if (threshold > 10 && grade <= 10) return threshold / 10;
     if (threshold <= 10 && grade > 10) return threshold * 10;
     return threshold;
   }
 
-  function markStatus(element, failed) {
-    if (!element) return;
-    element.classList.toggle("alerta-reprovado", failed);
-    element.dataset.status = failed ? "reprovado" : "aprovado";
+  function registroIds() {
+    return [...new Set(
+      [...root.querySelectorAll("[data-registro-id]")]
+        .map((el) => el.dataset.registroId)
+        .filter(Boolean)
+    )];
   }
 
-  function evaluateRecord(block, autoStatus = false) {
-    if (!block) return false;
+  function evaluateRecord(registroId) {
+    if (!registroId) return;
 
-    const thresholdRaw = block.dataset.mediaMinima || "";
-    const noteCells = [...block.querySelectorAll("[data-role='nota']")];
-    const statusCell = block.querySelector("[data-field='resultado']");
-    let anyFailed = false;
-    let numericCount = 0;
+    const notes = [
+      ...root.querySelectorAll(
+        `[data-role="nota"][data-registro-id="${registroId}"]`
+      ),
+    ];
+    const status = root.querySelector(
+      `[data-role="situacao"][data-registro-id="${registroId}"]`
+    );
 
-    noteCells.forEach((cell) => {
+    let failed = false;
+
+    notes.forEach((cell) => {
       const grade = parseNumber(cleanText(cell));
-      let failed = false;
-      if (grade !== null) {
-        numericCount += 1;
-        failed = grade < thresholdForGrade(thresholdRaw, grade);
-      }
-      cell.classList.toggle("alerta-reprovado", failed);
-      if (failed) anyFailed = true;
+      const threshold = thresholdForGrade(cell.dataset.mediaMinima || "", grade ?? 0);
+      const isFailed = grade !== null && grade < threshold;
+      cell.classList.toggle("alerta-reprovado", isFailed);
+      if (isFailed) failed = true;
     });
 
-    const currentStatus = cleanText(statusCell).toUpperCase();
-    const specialStatuses = new Set([
-      "EM CONTINUIDADE",
-      "EM CURSO",
-      "APTO",
-      "APTA",
-    ]);
-
-    if (
-      autoStatus &&
-      canEdit &&
-      statusCell &&
-      numericCount > 0 &&
-      !specialStatuses.has(currentStatus)
-    ) {
-      statusCell.textContent = anyFailed ? "REPROVADO" : "APROVADO";
-    }
-
-    const statusFailed =
-      cleanText(statusCell).toUpperCase() === "REPROVADO" || anyFailed;
-
-    markStatus(statusCell, statusFailed);
-    block.classList.toggle("registro-com-alerta", statusFailed);
-    return statusFailed;
-  }
-
-  function recalcRecordLoad(block) {
-    const componentLoads = [
-      ...block.querySelectorAll("[data-role='carga-componente']"),
-    ];
-    const totalCell = block.querySelector("[data-role='carga-horaria-total']");
-    if (!totalCell) return;
-
-    const values = componentLoads
-      .map((cell) => parseNumber(cleanText(cell)))
-      .filter((value) => value !== null);
-
-    if (values.length > 0) {
-      const sum = values.reduce((acc, value) => acc + value, 0);
-      totalCell.textContent = Number.isInteger(sum)
-        ? String(sum)
-        : sum.toLocaleString("pt-BR", {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2,
-          });
+    if (status) {
+      const statusFailed =
+        failed || cleanText(status).toUpperCase() === "REPROVADO";
+      status.classList.toggle("alerta-reprovado", statusFailed);
+      status.dataset.status = statusFailed ? "reprovado" : "aprovado";
     }
   }
 
-  function recalcSummary() {
-    const grades = [...root.querySelectorAll("[data-role='nota']")]
-      .map((cell) => parseNumber(cleanText(cell)))
-      .filter((value) => value !== null)
-      .map((value) => (value > 10 ? value / 10 : value));
+  const monthMap = {
+    JANEIRO: "01",
+    FEVEREIRO: "02",
+    "FEVEREIRO": "02",
+    MARÇO: "03",
+    MARCO: "03",
+    ABRIL: "04",
+    MAIO: "05",
+    JUNHO: "06",
+    JULHO: "07",
+    AGOSTO: "08",
+    SETEMBRO: "09",
+    OUTUBRO: "10",
+    NOVEMBRO: "11",
+    DEZEMBRO: "12",
+  };
 
-    const loads = [...root.querySelectorAll("[data-role='carga-horaria-total']")]
-      .map((cell) => parseNumber(cleanText(cell)))
-      .filter((value) => value !== null);
+  function collectBirthDate(aluno) {
+    const dia = cleanText(root.querySelector("[data-date-part='dia']"));
+    const mesRaw = cleanText(root.querySelector("[data-date-part='mes']")).toUpperCase();
+    const ano = cleanText(root.querySelector("[data-date-part='ano']"));
+    const mes = monthMap[mesRaw] || (mesRaw.match(/^\d{1,2}$/) ? mesRaw.padStart(2, "0") : "");
 
-    const alerts = root.querySelectorAll(".registro-com-alerta").length;
-
-    if (avgOutput) {
-      if (grades.length) {
-        const avg =
-          grades.reduce((acc, value) => acc + value, 0) / grades.length;
-        avgOutput.textContent = avg.toLocaleString("pt-BR", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        });
-      } else {
-        avgOutput.textContent = "—";
-      }
-    }
-
-    if (loadOutput) {
-      const total = loads.reduce((acc, value) => acc + value, 0);
-      loadOutput.textContent = total
-        ? total.toLocaleString("pt-BR", {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2,
-          })
-        : "—";
-    }
-
-    if (alertOutput) {
-      alertOutput.textContent = String(alerts);
+    if (dia && mes && ano) {
+      aluno.nascimento = `${dia.padStart(2, "0")}/${mes}/${ano}`;
     }
   }
 
@@ -163,31 +106,28 @@
     root.querySelectorAll("[data-model='aluno'][data-field]").forEach((el) => {
       aluno[el.dataset.field] = cleanText(el);
     });
+    collectBirthDate(aluno);
 
-    const registros = [
-      ...root.querySelectorAll("[data-registro-bloco]"),
-    ].map((block) => {
+    const registros = registroIds().map((id) => {
       const campos = {};
-      block.querySelectorAll("[data-model='registro'][data-field]").forEach(
-        (el) => {
-          campos[el.dataset.field] = cleanText(el);
-        }
-      );
+      root.querySelectorAll(
+        `[data-registro-id="${id}"][data-model="registro"][data-field]`
+      ).forEach((el) => {
+        campos[el.dataset.field] = cleanText(el);
+      });
 
       const notas = {};
-      block.querySelectorAll("[data-nota]").forEach((el) => {
-        const componente = el.dataset.nota;
-        const carga = block.querySelector(
-          `[data-carga-componente="${componente}"]`
-        );
-        notas[componente] = {
+      root.querySelectorAll(
+        `[data-registro-id="${id}"][data-nota]`
+      ).forEach((el) => {
+        notas[el.dataset.nota] = {
           valor: cleanText(el),
-          carga_horaria: cleanText(carga),
+          carga_horaria: "",
         };
       });
 
       return {
-        id: Number(block.dataset.registroId),
+        id: Number(id),
         campos,
         notas,
       };
@@ -204,6 +144,7 @@
 
   async function saveNow() {
     if (!canEdit || !saveUrl || !csrfToken) return;
+
     if (saving) {
       pendingSave = true;
       return;
@@ -250,17 +191,12 @@
 
   function onInput(event) {
     const target = event.target;
-    const block = target.closest("[data-registro-bloco]");
+    const registroId = target.dataset.registroId;
 
     if (target.matches("[data-role='nota']")) {
-      evaluateRecord(block, true);
-    } else if (target.matches("[data-role='carga-componente']")) {
-      recalcRecordLoad(block);
-    } else if (target.matches("[data-field='resultado']")) {
-      evaluateRecord(block, false);
+      evaluateRecord(registroId);
     }
 
-    recalcSummary();
     scheduleSave();
   }
 
@@ -276,10 +212,7 @@
       });
 
       element.addEventListener("keydown", (event) => {
-        if (
-          event.key === "Enter" &&
-          element.dataset.multiline !== "1"
-        ) {
+        if (event.key === "Enter" && element.dataset.multiline !== "1") {
           event.preventDefault();
           element.blur();
         }
@@ -301,16 +234,15 @@
       const response = await fetch(logo.dataset.fallbackB64Url);
       if (!response.ok) return;
       const base64 = (await response.text()).trim();
-      if (base64) logo.src = `data:image/jpeg;base64,${base64}`;
+      if (base64) {
+        logo.src = `data:image/jpeg;base64,${base64}`;
+      }
     } catch (_) {
-      // O texto institucional continua visível mesmo sem a imagem.
+      // Mantém o restante do documento utilizável se a imagem falhar.
     }
   }
 
-  root.querySelectorAll("[data-registro-bloco]").forEach((block) => {
-    evaluateRecord(block, false);
-  });
-  recalcSummary();
+  registroIds().forEach(evaluateRecord);
   setupEditableFields();
 
   if (saveButton) {
