@@ -36,24 +36,46 @@
   }
 
   function registroIds() {
-    return [...new Set(
-      [...root.querySelectorAll("[data-registro-id]")]
-        .map((el) => el.dataset.registroId)
-        .filter(Boolean)
-    )];
+    return [
+      ...root.querySelectorAll("tr[data-registro-id]"),
+    ].map((row) => row.dataset.registroId).filter(Boolean);
+  }
+
+  function firstRowFor(registroId) {
+    return root.querySelector(`tr[data-registro-id="${registroId}"]`);
+  }
+
+  function rowsFor(registroId) {
+    const first = firstRowFor(registroId);
+    if (!first) return [];
+
+    const rows = [first];
+    let current = first.nextElementSibling;
+    while (current && rows.length < 5) {
+      if (current.dataset.registroId) break;
+      rows.push(current);
+      current = current.nextElementSibling;
+    }
+    return rows;
+  }
+
+  function registroIdForElement(element) {
+    let row = element?.closest("tr");
+    while (row) {
+      if (row.dataset.registroId) return row.dataset.registroId;
+      row = row.previousElementSibling;
+    }
+    return "";
   }
 
   function evaluateRecord(registroId) {
     if (!registroId) return;
 
-    const notes = [
-      ...root.querySelectorAll(
-        `[data-role="nota"][data-registro-id="${registroId}"]`
-      ),
-    ];
-    const status = root.querySelector(
-      `[data-role="situacao"][data-registro-id="${registroId}"]`
-    );
+    const first = firstRowFor(registroId);
+    if (!first) return;
+
+    const notes = [...first.querySelectorAll("[data-role='nota']")];
+    const status = first.querySelector("[data-role='situacao']");
 
     let failed = false;
 
@@ -109,22 +131,24 @@
     collectBirthDate(aluno);
 
     const registros = registroIds().map((id) => {
+      const rows = rowsFor(id);
       const campos = {};
-      root.querySelectorAll(
-        `[data-registro-id="${id}"][data-model="registro"][data-field]`
-      ).forEach((el) => {
-        campos[el.dataset.field] = cleanText(el);
+      rows.forEach((row) => {
+        row.querySelectorAll("[data-model='registro'][data-field]").forEach((el) => {
+          campos[el.dataset.field] = cleanText(el);
+        });
       });
 
       const notas = {};
-      root.querySelectorAll(
-        `[data-registro-id="${id}"][data-nota]`
-      ).forEach((el) => {
-        notas[el.dataset.nota] = {
-          valor: cleanText(el),
-          carga_horaria: "",
-        };
-      });
+      const first = rows[0];
+      if (first) {
+        first.querySelectorAll("[data-nota]").forEach((el) => {
+          notas[el.dataset.nota] = {
+            valor: cleanText(el),
+            carga_horaria: "",
+          };
+        });
+      }
 
       return {
         id: Number(id),
@@ -191,7 +215,7 @@
 
   function onInput(event) {
     const target = event.target;
-    const registroId = target.dataset.registroId;
+    const registroId = registroIdForElement(target);
 
     if (target.matches("[data-role='nota']")) {
       evaluateRecord(registroId);
