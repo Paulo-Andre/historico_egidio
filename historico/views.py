@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 
 from .models import Aluno, Nota, RegistroAcademico
-from .services import historico_do_aluno
+from .services import historico_documento, historico_do_aluno
 
 
 def inicio(request):
@@ -51,7 +51,7 @@ def historico_impressao(request, codigo):
         "historico/historico.html",
         {
             "aluno": aluno,
-            "historico": historico_do_aluno(aluno),
+            "documento": historico_documento(aluno),
             "can_edit": bool(
                 request.user.is_authenticated and request.user.is_staff
             ),
@@ -88,6 +88,12 @@ def salvar_historico(request, codigo):
         "matricula",
         "cpf",
         "curso",
+        "identidade",
+        "orgao_expedidor",
+        "data_conclusao",
+        "ultima_serie_concluida",
+        "data_expedicao",
+        "observacao_historico",
         "uf",
         "pai",
         "mae",
@@ -128,10 +134,7 @@ def salvar_historico(request, codigo):
             try:
                 registro_id = int(item.get("id"))
             except (TypeError, ValueError):
-                return JsonResponse(
-                    {"ok": False, "erro": "Registro acadêmico inválido."},
-                    status=400,
-                )
+                continue
 
             registro = (
                 aluno.registros_academicos
