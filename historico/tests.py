@@ -5,13 +5,18 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .models import Aluno, ConfiguracaoAno, Nota, RegistroAcademico
-from .services import historico_do_aluno
+from .services import historico_documento, historico_do_aluno
 
 
 class HistoricoServiceTests(TestCase):
     def test_carga_horaria_do_registro_tem_precedencia_sobre_configuracao(self):
         aluno = Aluno.objects.create(codigo=1, nome="Aluno Teste")
-        ConfiguracaoAno.objects.create(ano=2025, ch_anual="800", media_minima="60")
+        ConfiguracaoAno.objects.create(
+            ano=2025,
+            ch_anual="800",
+            media_minima="60",
+            dias_letivos="200",
+        )
         registro = RegistroAcademico.objects.create(
             aluno=aluno,
             ano=2025,
@@ -26,8 +31,41 @@ class HistoricoServiceTests(TestCase):
         )
 
         dados = historico_do_aluno(aluno)[0]
-        self.assertEqual(dados["carga_horaria"], "820")
+        self.assertEqual(dados["carga_horaria"], "820:00")
         self.assertEqual(dados["media_minima_num"], "60")
+
+    def test_documento_tem_cinco_anos_e_preserva_lacuna_com_asterisco(self):
+        aluno = Aluno.objects.create(
+            codigo=2,
+            nome="Aluna Teste",
+            sexo="FEMININO",
+        )
+        for serie, ano in [(1, 2022), (3, 2023), (4, 2024), (5, 2025)]:
+            ConfiguracaoAno.objects.get_or_create(
+                ano=ano,
+                defaults={
+                    "ch_anual": "800",
+                    "media_minima": "60",
+                    "dias_letivos": "200",
+                },
+            )
+            RegistroAcademico.objects.create(
+                aluno=aluno,
+                ano=ano,
+                serie=serie,
+                carga_horaria="800",
+                resultado="APROVADO",
+                escola="E. M. EGÍDIO CORDEIRO AQUINO",
+                municipio="MONTES CLAROS",
+            )
+
+        documento = historico_documento(aluno)
+
+        self.assertEqual(len(documento["slots"]), 5)
+        self.assertTrue(documento["slots"][1]["faltante"])
+        self.assertEqual(documento["slots"][1]["ano"], "*")
+        self.assertIn("LACUNA NO 2° ANO", documento["observacao"])
+        self.assertIn("MATRICULAR-SE NO 6º ANO", documento["observacao"])
 
 
 class HistoricoEditorTests(TestCase):
@@ -46,7 +84,7 @@ class HistoricoEditorTests(TestCase):
         )
         self.client.login(username="operador", password="senha-forte-teste")
 
-    def test_operador_salva_aluno_registro_nota_e_carga(self):
+    def test_operador_salva_certificado_registro_nota_e_carga(self):
         url = reverse("historico:salvar_historico", args=[self.aluno.codigo])
         payload = {
             "aluno": {
@@ -54,6 +92,12 @@ class HistoricoEditorTests(TestCase):
                 "matricula": "2025-001",
                 "cpf": "123.456.789-00",
                 "curso": "ENSINO FUNDAMENTAL",
+                "identidade": "MG-00.000.000",
+                "orgao_expedidor": "POLÍCIA CIVIL/MG",
+                "data_conclusao": "15/12/2025",
+                "ultima_serie_concluida": "5º",
+                "data_expedicao": "12/06/2026",
+                "observacao_historico": "OBSERVAÇÃO TESTE",
             },
             "registros": [
                 {
@@ -66,7 +110,7 @@ class HistoricoEditorTests(TestCase):
                     "notas": {
                         "matematica": {
                             "valor": "5,5",
-                            "carga_horaria": "160",
+                            "carga_horaria": "",
                         }
                     },
                 }
@@ -88,7 +132,11 @@ class HistoricoEditorTests(TestCase):
         )
 
         self.assertEqual(self.aluno.nome, "Nome Atualizado")
+        self.assertEqual(self.aluno.identidade, "MG-00.000.000")
+        self.assertEqual(self.aluno.orgao_expedidor, "POLÍCIA CIVIL/MG")
+        self.assertEqual(self.aluno.data_conclusao, "15/12/2025")
+        self.assertEqual(self.aluno.data_expedicao, "12/06/2026")
+        self.assertEqual(self.aluno.observacao_historico, "OBSERVAÇÃO TESTE")
         self.assertEqual(self.registro.resultado, "REPROVADO")
         self.assertEqual(self.registro.frequencia, "74%")
         self.assertEqual(nota.valor, "5,5")
-        self.assertEqual(nota.carga_horaria, "160")
