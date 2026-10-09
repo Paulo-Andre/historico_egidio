@@ -14,13 +14,50 @@ class AlunoAdmin(admin.ModelAdmin):
         "codigo",
         "matricula",
         "nome",
-        "cpf",
+        "identidade",
         "nascimento",
         "sexo",
         "ativo",
     )
-    search_fields = ("nome", "codigo", "matricula", "cpf", "mae", "pai")
+    search_fields = (
+        "nome",
+        "codigo",
+        "matricula",
+        "cpf",
+        "identidade",
+        "mae",
+        "pai",
+    )
     list_filter = ("ativo", "sexo")
+    fieldsets = (
+        ("Identificação", {
+            "fields": (
+                "codigo",
+                "nome",
+                "matricula",
+                "cpf",
+                "identidade",
+                "orgao_expedidor",
+                "sexo",
+                "nascimento",
+                "naturalidade",
+                "uf",
+                "nacionalidade",
+                "pai",
+                "mae",
+                "ativo",
+            )
+        }),
+        ("Histórico / certificado", {
+            "fields": (
+                "curso",
+                "data_conclusao",
+                "ultima_serie_concluida",
+                "data_expedicao",
+                "observacao_historico",
+            )
+        }),
+    )
 
 
 @admin.register(ConfiguracaoAno)
