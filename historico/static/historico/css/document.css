@@ -411,32 +411,50 @@
   min-width: 0;
   height: 100%;
   overflow: hidden;
-  padding: 1.15mm 1mm .7mm;
-  font-size: 4.25pt;
-  line-height: 1.12;
+  padding: 1.45mm 1.3mm 1.15mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: .65mm;
+  font-size: 5.15pt;
+  line-height: 1.18;
   text-align: center;
 }
 
 .legal-column h3 {
-  margin: 0 0 .8mm;
-  font-size: 4.55pt;
+  margin: 0 0 .4mm;
+  font-size: 5.35pt;
   font-weight: 700;
   text-align: left;
 }
 
 .legal-column p {
-  margin: 0 0 .72mm;
+  margin: 0;
+  flex: 0 0 auto;
   text-align: center;
 }
 
 .legal-center {
-  margin-bottom: .6mm !important;
+  margin-bottom: 0 !important;
 }
 
 .legal-divider {
-  margin: .25mm 0 .55mm;
-  font-size: 4pt;
+  margin: 0;
+  flex: 0 0 auto;
+  font-size: 4.7pt;
   letter-spacing: -.02em;
+}
+
+/* O texto específico de 2020 adiciona várias linhas. Mantém boa
+   legibilidade sem ultrapassar a área reservada às observações. */
+.legal-column--2020 {
+  gap: .45mm;
+  font-size: 4.75pt;
+  line-height: 1.14;
+}
+
+.legal-column--2020 h3 {
+  font-size: 5pt;
 }
 
 .bottom-observation {
