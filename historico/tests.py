@@ -704,21 +704,22 @@ class ImportacaoNotasPdfPreservacaoHistoricoTests(TestCase):
             2,
         )
 
-    def test_importacao_so_adiciona_nota_que_ainda_nao_existe(self):
+    def test_turma_diferente_cria_nova_relacao_sem_apagar_notas_antigas(self):
         aluno = Aluno.objects.create(
             codigo=502,
             nome="ALUNO SEM SOBRESCRITA",
             curso="ENSINO FUNDAMENTAL",
         )
-        registro = RegistroAcademico.objects.create(
+        antiga = RegistroAcademico.objects.create(
             aluno=aluno,
             nome_original=aluno.nome,
             ano=2024,
             serie=4,
             turma="TURMA ANTIGA",
+            ativo_no_historico=True,
         )
         Nota.objects.create(
-            registro=registro,
+            registro=antiga,
             componente=Nota.MATEMATICA,
             valor="70",
         )
@@ -740,21 +741,39 @@ class ImportacaoNotasPdfPreservacaoHistoricoTests(TestCase):
             }
         )
 
-        registro.refresh_from_db()
-        matematica = Nota.objects.get(
-            registro=registro,
-            componente=Nota.MATEMATICA,
-        )
-        historia = Nota.objects.get(
-            registro=registro,
-            componente=Nota.HISTORIA,
+        antiga.refresh_from_db()
+        nova = RegistroAcademico.objects.get(
+            aluno=aluno,
+            ano=2024,
+            serie=4,
+            turma="TURMA NOVA",
         )
 
-        self.assertEqual(matematica.valor, "70")
-        self.assertEqual(historia.valor, "88")
-        self.assertEqual(registro.turma, "TURMA ANTIGA")
-        self.assertEqual(resultado["notas_adicionadas"], 1)
-        self.assertEqual(resultado["notas_preservadas"], 1)
+        self.assertEqual(
+            Nota.objects.get(
+                registro=antiga,
+                componente=Nota.MATEMATICA,
+            ).valor,
+            "70",
+        )
+        self.assertEqual(
+            Nota.objects.get(
+                registro=nova,
+                componente=Nota.MATEMATICA,
+            ).valor,
+            "99",
+        )
+        self.assertEqual(
+            Nota.objects.get(
+                registro=nova,
+                componente=Nota.HISTORIA,
+            ).valor,
+            "88",
+        )
+        self.assertTrue(antiga.ativo_no_historico)
+        self.assertFalse(nova.ativo_no_historico)
+        self.assertEqual(resultado["notas_adicionadas"], 2)
+        self.assertEqual(resultado["notas_preservadas"], 0)
 
     def test_mesma_disciplina_pode_existir_em_cinco_anos(self):
         aluno = Aluno.objects.create(
@@ -790,6 +809,126 @@ class ImportacaoNotasPdfPreservacaoHistoricoTests(TestCase):
             5,
         )
 
+
+
+class RelacoesAcademicasAtivasTests(TestCase):
+    def setUp(self):
+        self.aluno = Aluno.objects.create(
+            codigo=880,
+            nome="ALUNO TRANSFERIDO",
+        )
+        self.azul = RegistroAcademico.objects.create(
+            aluno=self.aluno,
+            nome_original=self.aluno.nome,
+            ano=2025,
+            serie=5,
+            turma="5º ANO AZUL",
+            resultado="TRANSFERIDO",
+            ativo_no_historico=True,
+        )
+        Nota.objects.create(
+            registro=self.azul,
+            componente=Nota.MATEMATICA,
+            valor="61",
+        )
+        self.vermelho = RegistroAcademico.objects.create(
+            aluno=self.aluno,
+            nome_original=self.aluno.nome,
+            ano=2025,
+            serie=5,
+            turma="5º ANO VERMELHO",
+            resultado="APROVADO",
+            ativo_no_historico=False,
+        )
+        Nota.objects.create(
+            registro=self.vermelho,
+            componente=Nota.MATEMATICA,
+            valor="92",
+        )
+
+    def test_historico_oficial_usa_somente_relacao_ativa(self):
+        documento = historico_oficial_do_aluno(self.aluno)
+        quinto = documento["anos"][4]
+
+        self.assertEqual(quinto["registro"].id, self.azul.id)
+        self.assertEqual(
+            quinto["notas"][Nota.MATEMATICA],
+            "61",
+        )
+
+    def test_ativar_nova_turma_desativa_anterior_sem_apagar_notas(self):
+        response = self.client.post(
+            reverse(
+                "historico:alternar_relacao_academica",
+                args=[self.aluno.codigo, self.vermelho.id],
+            ),
+            data={"acao": "ativar"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.azul.refresh_from_db()
+        self.vermelho.refresh_from_db()
+
+        self.assertFalse(self.azul.ativo_no_historico)
+        self.assertTrue(self.vermelho.ativo_no_historico)
+        self.assertEqual(
+            Nota.objects.get(
+                registro=self.azul,
+                componente=Nota.MATEMATICA,
+            ).valor,
+            "61",
+        )
+        self.assertEqual(
+            Nota.objects.get(
+                registro=self.vermelho,
+                componente=Nota.MATEMATICA,
+            ).valor,
+            "92",
+        )
+
+        documento = historico_oficial_do_aluno(self.aluno)
+        quinto = documento["anos"][4]
+        self.assertEqual(quinto["registro"].id, self.vermelho.id)
+        self.assertEqual(
+            quinto["notas"][Nota.MATEMATICA],
+            "92",
+        )
+
+    def test_desativar_relacao_nao_apaga_registro_nem_nota(self):
+        response = self.client.post(
+            reverse(
+                "historico:alternar_relacao_academica",
+                args=[self.aluno.codigo, self.azul.id],
+            ),
+            data={"acao": "desativar"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.azul.refresh_from_db()
+        self.assertFalse(self.azul.ativo_no_historico)
+        self.assertTrue(
+            Nota.objects.filter(
+                registro=self.azul,
+                componente=Nota.MATEMATICA,
+                valor="61",
+            ).exists()
+        )
+
+        documento = historico_oficial_do_aluno(self.aluno)
+        quinto = documento["anos"][4]
+        self.assertTrue(quinto["vazio"])
+        self.assertIsNone(quinto["registro"])
+
+    def test_prontuario_mostra_relacoes_ativas_e_inativas(self):
+        response = self.client.get(
+            reverse("historico:aluno", args=[self.aluno.codigo])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "5º ANO AZUL")
+        self.assertContains(response, "5º ANO VERMELHO")
+        self.assertContains(response, "Ativa no histórico")
+        self.assertContains(response, "Inativa")
 
 
 class LimpezaTotalNotasAdminTests(TestCase):
