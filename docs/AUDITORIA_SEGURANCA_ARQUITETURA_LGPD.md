@@ -212,9 +212,8 @@ A prévia continua editável pela secretaria; a versão autenticada é somente l
 - [ ] Com HTTPS ativo, configurar `DJANGO_SECURE_SSL_REDIRECT=1`.
 - [ ] Após validar HTTPS por alguns dias, configurar HSTS.
 - [ ] Fazer backup do SQLite antes da implantação.
-- [ ] Testar emissão + QR em celular externo à rede, usando o domínio público.
-- [ ] Revisar permissões de usuários staff/superuser.
-- [ ] Remover contas administrativas antigas ou compartilhadas.
+- [ ] Testar a emissão autenticada no próprio sistema (snapshot, SHA-256 e registro de auditoria). A leitura externa do QR Code fica adiada por enquanto.
+- [ ] Controle de contas staff/superuser fica adiado nesta etapa, pois o sistema será incorporado a outro sistema que já exige usuário e senha.
 
 ## Média prioridade
 
@@ -222,7 +221,7 @@ A prévia continua editável pela secretaria; a versão autenticada é somente l
 - [ ] Vincular cada `ConfiguracaoAno` à matriz correta.
 - [ ] Tratar os registros apontados na tela Integridade.
 - [ ] Programar backup diário criptografado e teste mensal de restauração.
-- [ ] Colocar o painel administrativo atrás de Cloudflare Access/VPN quando disponível.
+- [ ] Quando ocorrer a integração com o sistema principal, revisar como a autenticação dele será repassada ao Django e então decidir se o painel administrativo precisa de proteção adicional.
 - [ ] Planejar PostgreSQL antes de ampliar a quantidade de operadores simultâneos.
 
 ## Baixa prioridade / evolução
