@@ -4,7 +4,7 @@
 {% block title %}Histórico Escolar — {{ aluno.nome }}{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'historico/css/document.css' %}?v=20261010-04">
+<link rel="stylesheet" href="{% static 'historico/css/document.css' %}?v=20261010-05">
 {% endblock %}
 
 {% block content %}
@@ -167,8 +167,10 @@
 
             <tbody>
               {% for h in historico %}
-              <tr class="year-group-start"
-                  {% if h.registro %}data-registro-id="{{ h.registro.id }}" data-media-minima="{{ h.media_minima_num }}" data-serie="{{ h.serie }}"{% endif %}>
+              <tr class="year-group-start{% if h.vazio %} year-group-start--empty{% endif %}"
+                  data-serie="{{ h.serie }}"
+                  {% if h.vazio %}data-empty-year="1"{% endif %}
+                  {% if h.registro %}data-registro-id="{{ h.registro.id }}" data-media-minima="{{ h.media_minima_num }}"{% endif %}>
                 {% if forloop.first %}
                   <th rowspan="25" class="stage-cell">ANOS INICIAIS</th>
                 {% endif %}
@@ -298,5 +300,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'historico/js/historico-editor.js' %}" defer></script>
+<script src="{% static 'historico/js/historico-editor.js' %}?v=20261010-02" defer></script>
 {% endblock %}
