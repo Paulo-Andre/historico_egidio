@@ -94,13 +94,14 @@
       <div class="upload-area__icon">XLS</div>
       <div>
         <strong>Escolher arquivo .xls ou .xlsx</strong>
-        <span>Limite de 15 MB. Nenhum dado é alterado nesta primeira etapa.</span>
+        <span id="arquivo-selecionado">Nenhum arquivo selecionado</span>
+        <small>Limite de 15 MB. Nenhum dado é alterado nesta primeira etapa.</small>
       </div>
       {{ formulario.arquivo }}
     </label>
     {{ formulario.arquivo.errors }}
     <div class="upload-actions">
-      <button type="submit" class="btn primary">Analisar lista</button>
+      <button type="submit" class="btn primary" id="btn-analisar">Analisar lista</button>
     </div>
   </form>
 </section>
@@ -213,4 +214,33 @@
 </section>
 {% endif %}
 {% endif %}
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+(function () {
+  const input = document.querySelector('input[type="file"][name="arquivo"]');
+  const nome = document.getElementById("arquivo-selecionado");
+  const form = document.querySelector(".upload-form");
+  const botao = document.getElementById("btn-analisar");
+
+  if (input && nome) {
+    input.addEventListener("change", function () {
+      nome.textContent = input.files && input.files.length
+        ? input.files[0].name
+        : "Nenhum arquivo selecionado";
+    });
+  }
+
+  if (form && botao) {
+    form.addEventListener("submit", function () {
+      if (!input || !input.files || !input.files.length) return;
+      botao.disabled = true;
+      botao.textContent = "Carregando e analisando...";
+      form.classList.add("is-loading");
+    });
+  }
+})();
+</script>
 {% endblock %}
