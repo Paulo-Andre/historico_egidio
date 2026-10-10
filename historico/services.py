@@ -291,10 +291,21 @@ def historico_oficial_do_aluno(aluno):
         )
 
     nascimento = _data_partes(aluno.nascimento)
+
     data_expedicao = aluno.data_expedicao.strip()
     if not data_expedicao:
         hoje = timezone.localdate()
         data_expedicao = f"{hoje.day:02d}/{hoje.month:02d}/{hoje.year}"
+
+    data_conclusao = aluno.data_conclusao.strip()
+    if not data_conclusao:
+        quinto_ano = por_serie.get(5)
+        if quinto_ano:
+            config_quinto = ConfiguracaoAno.objects.filter(
+                ano=quinto_ano.ano
+            ).first()
+            if config_quinto:
+                data_conclusao = config_quinto.data_conclusao.strip()
 
     return {
         "anos": anos,
@@ -304,6 +315,6 @@ def historico_oficial_do_aluno(aluno):
         ),
         "nascimento": nascimento,
         "data_expedicao": data_expedicao,
-        "data_conclusao": aluno.data_conclusao,
+        "data_conclusao": data_conclusao,
         "observacao_historico": aluno.observacao_historico,
     }
