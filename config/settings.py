@@ -2,17 +2,39 @@ from pathlib import Path
 import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
+DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(exist_ok=True)
+
+
+def _read_runtime_secret(env_name, filename):
+    value = os.getenv(env_name, "").strip()
+    if value:
+        return value
+
+    secret_path = DATA_DIR / filename
+    if secret_path.exists():
+        return secret_path.read_text(encoding="utf-8").strip()
+
+    return ""
+
+
+SECRET_KEY = _read_runtime_secret(
+    "DJANGO_SECRET_KEY",
+    ".django_secret_key",
+)
 DEBUG = os.getenv("DJANGO_DEBUG", "0") == "1"
 if not SECRET_KEY:
     raise RuntimeError(
-        "DJANGO_SECRET_KEY não definido. O entrypoint deve gerar/carregar uma chave persistente."
+        "Chave Django não disponível no ambiente nem no arquivo persistente."
     )
 
-DOCUMENT_SIGNING_KEY = os.getenv("DOCUMENT_SIGNING_KEY", "")
+DOCUMENT_SIGNING_KEY = _read_runtime_secret(
+    "DOCUMENT_SIGNING_KEY",
+    ".document_signing_key",
+)
 if not DOCUMENT_SIGNING_KEY:
     raise RuntimeError(
-        "DOCUMENT_SIGNING_KEY não definido. O entrypoint deve gerar/carregar a chave de assinatura."
+        "Chave de assinatura não disponível no ambiente nem no arquivo persistente."
     )
 
 ALLOWED_HOSTS = [
@@ -52,8 +74,6 @@ TEMPLATES = [{
 }]
 WSGI_APPLICATION = "config.wsgi.application"
 
-DATA_DIR = BASE_DIR / "data"
-DATA_DIR.mkdir(exist_ok=True)
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
