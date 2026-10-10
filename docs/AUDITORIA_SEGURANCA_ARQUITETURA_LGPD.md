@@ -32,9 +32,10 @@ Data da revisão: 10/10/2026
 
 ### Controle de acesso / IDOR
 
-- Dashboard, prontuário e histórico completo agora exigem autenticação.
-- Usuários não pertencentes à secretaria (`is_staff=False`) recebem 403.
-- A validação pública é uma rota separada e revela apenas dados mínimos mascarados.
+- Nesta fase de desenvolvimento, o módulo de Histórico Escolar permanece sem autenticação própria, por decisão de integração: ele será incorporado ao sistema principal, que fornecerá usuário/senha e controle de sessão.
+- O Django Admin continua protegido pela autenticação nativa do Django.
+- A validação pública continua separada e revela apenas dados mínimos mascarados.
+- Antes de expor o módulo fora do ambiente controlado, a autenticação do sistema principal deverá proteger todas as rotas operacionais.
 - Consultas usam Django ORM; não há SQL montado com texto fornecido pelo usuário.
 
 ### Criptografia de integridade e antifraude
@@ -221,7 +222,8 @@ A prévia continua editável pela secretaria; a versão autenticada é somente l
 - [ ] Vincular cada `ConfiguracaoAno` à matriz correta.
 - [ ] Tratar os registros apontados na tela Integridade.
 - [ ] Programar backup diário criptografado e teste mensal de restauração.
-- [ ] Quando ocorrer a integração com o sistema principal, revisar como a autenticação dele será repassada ao Django e então decidir se o painel administrativo precisa de proteção adicional.
+- [ ] Quando ocorrer a integração com o sistema principal, proteger todas as rotas operacionais usando a autenticação central do sistema e validar o repasse seguro de identidade/permissões ao Django.
+- [ ] Até essa integração, manter este módulo apenas em ambiente controlado/rede interna, pois as telas operacionais estão deliberadamente sem login próprio.
 - [ ] Planejar PostgreSQL antes de ampliar a quantidade de operadores simultâneos.
 
 ## Baixa prioridade / evolução
