@@ -53,6 +53,7 @@ def historico_impressao(request, codigo):
         {
             "aluno": aluno,
             "historico": oficial["anos"],
+            "tem_2020": oficial["tem_2020"],
             "nascimento": oficial["nascimento"],
             "data_conclusao": oficial["data_conclusao"],
             "data_expedicao": oficial["data_expedicao"],
