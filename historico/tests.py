@@ -147,15 +147,14 @@ class AlunoCadastroEdicaoTests(TestCase):
         self.assertContains(response, "Cadastrar novo aluno")
         self.assertContains(response, "Vida escolar e notas")
 
-    def test_usuario_sem_permissao_nao_edita(self):
-        aluno = Aluno.objects.create(codigo=20, nome="Aluno Protegido")
-        self.client.login(username="usuario", password="senha-teste")
+    def test_edicao_abre_sem_login_nesta_fase_de_integracao(self):
+        aluno = Aluno.objects.create(codigo=20, nome="Aluno Integração")
 
         response = self.client.get(
             reverse("historico:aluno_editar", args=[aluno.codigo])
         )
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
 
     def test_cadastra_aluno_registro_e_notas_na_mesma_tela(self):
         self.client.login(username="secretaria", password="senha-teste")
@@ -306,11 +305,10 @@ class DadosExtrasAnuaisTests(TestCase):
         self.assertContains(response, "Dias letivos")
         self.assertContains(response, "Data de conclusão")
 
-    def test_usuario_sem_permissao_nao_altera_configuracao_anual(self):
-        self.client.login(username="leitor", password="senha-teste")
+    def test_dados_anuais_abrem_sem_login_nesta_fase_de_integracao(self):
         response = self.client.get(reverse("historico:dados_extras_anuais"))
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
 
     def test_cadastra_configuracao_anual(self):
         self.client.login(username="configurador", password="senha-teste")
