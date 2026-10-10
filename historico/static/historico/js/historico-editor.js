@@ -292,6 +292,87 @@
     });
   }
 
+  function removeMissingYearDiagonals() {
+    root.querySelectorAll(".missing-year-diagonal").forEach((element) => {
+      element.remove();
+    });
+  }
+
+  function drawMissingYearDiagonals() {
+    removeMissingYearDiagonals();
+
+    const host = root.querySelector(".history-left");
+    const table = root.querySelector(".official-history-table");
+    if (!host || !table) return;
+
+    const starts = [...table.querySelectorAll("tbody .year-group-start")];
+    if (!starts.length) return;
+
+    const runs = [];
+    let runStart = null;
+    let runEnd = null;
+
+    starts.forEach((row, index) => {
+      const missing = row.dataset.emptyYear === "1";
+      if (missing) {
+        if (runStart === null) runStart = index;
+        runEnd = index;
+      }
+
+      const isLast = index === starts.length - 1;
+      if ((!missing || isLast) && runStart !== null) {
+        if (!missing) runEnd = index - 1;
+        runs.push([runStart, runEnd]);
+        runStart = null;
+        runEnd = null;
+      }
+    });
+
+    const hostRect = host.getBoundingClientRect();
+    const tableRect = table.getBoundingClientRect();
+
+    runs.forEach(([startIndex, endIndex]) => {
+      const startRow = starts[startIndex];
+      const nextStart = starts[endIndex + 1] || null;
+      const endRow = nextStart
+        ? nextStart.previousElementSibling
+        : table.querySelector("tbody tr:last-child");
+
+      const yearCell = startRow.querySelector(".year-cell");
+      if (!yearCell || !endRow) return;
+
+      const startRect = startRow.getBoundingClientRect();
+      const yearRect = yearCell.getBoundingClientRect();
+      const endRect = endRow.getBoundingClientRect();
+
+      const left = yearRect.left - hostRect.left;
+      const top = startRect.top - hostRect.top;
+      const width = tableRect.right - yearRect.left;
+      const height = endRect.bottom - startRect.top;
+
+      if (width <= 0 || height <= 0) return;
+
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.classList.add("missing-year-diagonal");
+      svg.setAttribute("aria-hidden", "true");
+      svg.setAttribute("width", String(width));
+      svg.setAttribute("height", String(height));
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.style.left = `${left}px`;
+      svg.style.top = `${top}px`;
+      svg.style.width = `${width}px`;
+      svg.style.height = `${height}px`;
+
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", "0");
+      line.setAttribute("y1", "0");
+      line.setAttribute("x2", String(width));
+      line.setAttribute("y2", String(height));
+      svg.appendChild(line);
+      host.appendChild(svg);
+    });
+  }
+
   async function hydrateLetterheadFallback() {
     if (!logo || !logo.dataset.fallbackB64Url) return;
     if (logo.complete && logo.naturalWidth > 0) return;
@@ -309,6 +390,10 @@
   uniqueRecordIds().forEach((id) => evaluateRecord(id, false));
   recalcSummary();
   setupEditableFields();
+  drawMissingYearDiagonals();
+
+  window.addEventListener("resize", drawMissingYearDiagonals);
+  window.addEventListener("beforeprint", drawMissingYearDiagonals);
 
   saveButton?.addEventListener("click", () => {
     window.clearTimeout(saveTimer);
