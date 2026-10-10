@@ -33,7 +33,10 @@ class HistoricoServiceTests(TestCase):
         documento = historico_oficial_do_aluno(aluno)
 
         self.assertEqual(len(documento["anos"]), 5)
-        self.assertEqual(documento["anos"][0]["ano"], "*")
+        self.assertEqual(documento["anos"][0]["ano"], "")
+        self.assertEqual(documento["anos"][0]["carga_horaria"], "")
+        self.assertEqual(documento["anos"][0]["situacao"], "")
+        self.assertTrue(documento["anos"][0]["vazio"])
         self.assertEqual(documento["anos"][2]["ano"], 2020)
         self.assertTrue(documento["tem_2020"])
 
