@@ -596,6 +596,33 @@ class ImportacaoNotasPdfSaewebTests(TestCase):
 
         self.assertEqual(contexto, anterior)
 
+    def test_tabela_saeweb_preserva_aluno_transferido_sem_notas(self):
+        cabecalho = [""] * 36
+        cabecalho[0] = "Nº"
+        cabecalho[1] = "Estudante"
+        cabecalho[35] = "Situação Final"
+
+        aluno = ["-"] * 36
+        aluno[0] = "7"
+        aluno[1] = "Aluno Transferido"
+        aluno[35] = "TRANSFERIDO"
+
+        itens = _itens_tabela_saeweb(
+            [cabecalho, aluno],
+            {
+                "ano": 2025,
+                "turma": "5º ano Azul",
+                "serie": 5,
+            },
+            1,
+        )
+
+        self.assertEqual(len(itens), 1)
+        self.assertEqual(itens[0]["nome"], "Aluno Transferido")
+        self.assertEqual(itens[0]["turma"], "5º ano Azul")
+        self.assertEqual(itens[0]["notas"], {})
+        self.assertEqual(itens[0]["resultado"], "TRANSFERIDO")
+
     def test_tabela_saeweb_mapeia_notas_corretamente(self):
         cabecalho = [""] * 36
         cabecalho[0] = "Nº"
@@ -772,6 +799,43 @@ class ImportacaoNotasPdfPreservacaoHistoricoTests(TestCase):
         self.assertFalse(nova.ativo_no_historico)
         self.assertEqual(resultado["notas_adicionadas"], 2)
         self.assertEqual(resultado["notas_preservadas"], 0)
+
+    def test_relacao_sem_notas_e_criada_inativa(self):
+        aluno = Aluno.objects.create(
+            codigo=503,
+            nome="ALUNO TRANSFERIDO SEM NOTAS",
+            curso="ENSINO FUNDAMENTAL",
+        )
+
+        resultado = aplicar_notas_pdf(
+            {
+                "itens": [
+                    {
+                        "nome": "ALUNO TRANSFERIDO SEM NOTAS",
+                        "ano": 2025,
+                        "serie": 5,
+                        "turma": "5º ANO AZUL",
+                        "resultado": "TRANSFERIDO",
+                        "notas": {},
+                    }
+                ]
+            }
+        )
+
+        registro = RegistroAcademico.objects.get(
+            aluno=aluno,
+            ano=2025,
+            serie=5,
+            turma="5º ANO AZUL",
+        )
+        self.assertFalse(registro.ativo_no_historico)
+        self.assertEqual(registro.notas.count(), 0)
+        self.assertEqual(registro.resultado, "TRANSFERIDO")
+        self.assertEqual(resultado["registros_criados"], 1)
+        self.assertEqual(resultado["notas_adicionadas"], 0)
+
+        documento = historico_oficial_do_aluno(aluno)
+        self.assertTrue(documento["anos"][4]["vazio"])
 
     def test_mesma_disciplina_pode_existir_em_cinco_anos(self):
         aluno = Aluno.objects.create(
