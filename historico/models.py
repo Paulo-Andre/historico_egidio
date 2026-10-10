@@ -257,8 +257,14 @@ class AuditoriaEvento(models.Model):
     class Meta:
         ordering = ["-criado_em"]
         indexes = [
-            models.Index(fields=["acao", "criado_em"]),
-            models.Index(fields=["entidade", "objeto_id"]),
+            models.Index(
+                fields=["acao", "criado_em"],
+                name="historico_a_acao_8cc985_idx",
+            ),
+            models.Index(
+                fields=["entidade", "objeto_id"],
+                name="historico_a_entidad_65ea04_idx",
+            ),
         ]
 
     def __str__(self):
