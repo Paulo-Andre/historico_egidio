@@ -127,6 +127,14 @@ class RegistroAcademico(models.Model):
     uf = models.CharField(max_length=2, default="MG")
     linha_origem = models.PositiveIntegerField(null=True, blank=True)
     observacao = models.TextField(blank=True)
+    ativo_no_historico = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text=(
+            "Somente relações ativas entram no Histórico Escolar oficial. "
+            "Desativar não remove notas nem apaga o registro."
+        ),
+    )
     matriz_curricular = models.ForeignKey(
         MatrizCurricularVersao,
         on_delete=models.PROTECT,
@@ -141,7 +149,16 @@ class RegistroAcademico(models.Model):
             models.UniqueConstraint(
                 fields=["ano", "linha_origem"],
                 name="uniq_registro_ano_linha",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["aluno", "serie"],
+                condition=models.Q(
+                    ativo_no_historico=True,
+                    aluno__isnull=False,
+                    serie__isnull=False,
+                ),
+                name="uniq_registro_ativo_aluno_serie",
+            ),
         ]
         indexes = [
             models.Index(
