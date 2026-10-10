@@ -24,6 +24,7 @@ jobs:
       - name: Django checks
         env:
           DJANGO_SECRET_KEY: ci-only-secret
+          DOCUMENT_SIGNING_KEY: ci-only-signing-key
           DJANGO_DEBUG: "0"
           DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
         run: |
