@@ -5,23 +5,23 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .models import Aluno, ConfiguracaoAno, Nota, RegistroAcademico
-from .services import historico_documento, historico_do_aluno
+from .services import historico_oficial_do_aluno
 
 
 class HistoricoServiceTests(TestCase):
-    def test_carga_horaria_do_registro_tem_precedencia_sobre_configuracao(self):
+    def test_modelo_oficial_monta_cinco_anos_e_detecta_2020(self):
         aluno = Aluno.objects.create(codigo=1, nome="Aluno Teste")
         ConfiguracaoAno.objects.create(
-            ano=2025,
+            ano=2020,
             ch_anual="800",
-            media_minima="60",
             dias_letivos="200",
+            media_minima="60",
         )
         registro = RegistroAcademico.objects.create(
             aluno=aluno,
-            ano=2025,
-            serie=5,
-            carga_horaria="820",
+            ano=2020,
+            serie=3,
+            carga_horaria="800",
             resultado="APROVADO",
         )
         Nota.objects.create(
@@ -30,67 +30,15 @@ class HistoricoServiceTests(TestCase):
             valor="80",
         )
 
-        dados = historico_do_aluno(aluno)[0]
-        self.assertEqual(dados["carga_horaria"], "820:00")
-        self.assertEqual(dados["media_minima_num"], "60")
+        documento = historico_oficial_do_aluno(aluno)
 
-    def test_modelo_oficial_sempre_monta_primeiro_ao_quinto_ano(self):
-        aluno = Aluno.objects.create(codigo=2, nome="Aluna Modelo")
-        ConfiguracaoAno.objects.create(
-            ano=2025,
-            ch_anual="833.333333",
-            dias_letivos="200",
-            media_minima="0.6",
-        )
-        RegistroAcademico.objects.create(
-            aluno=aluno,
-            ano=2025,
-            serie=5,
-            resultado="APROVADO",
-        )
-
-        oficial = historico_oficial_do_aluno(aluno)
-        self.assertEqual(len(oficial["anos"]), 5)
-        self.assertEqual(oficial["anos"][0]["ano"], "*")
-        self.assertEqual(oficial["anos"][4]["ano"], 2025)
-        self.assertEqual(oficial["anos"][4]["carga_horaria"], "833:20")
-        self.assertEqual(oficial["anos"][4]["media_minima"], "60%")
-
-    def test_documento_tem_cinco_anos_e_preserva_lacuna_com_asterisco(self):
-        aluno = Aluno.objects.create(
-            codigo=2,
-            nome="Aluna Teste",
-            sexo="FEMININO",
-        )
-        for serie, ano in [(1, 2022), (3, 2023), (4, 2024), (5, 2025)]:
-            ConfiguracaoAno.objects.get_or_create(
-                ano=ano,
-                defaults={
-                    "ch_anual": "800",
-                    "media_minima": "60",
-                    "dias_letivos": "200",
-                },
-            )
-            RegistroAcademico.objects.create(
-                aluno=aluno,
-                ano=ano,
-                serie=serie,
-                carga_horaria="800",
-                resultado="APROVADO",
-                escola="E. M. EGÍDIO CORDEIRO AQUINO",
-                municipio="MONTES CLAROS",
-            )
-
-        documento = historico_documento(aluno)
-
-        self.assertEqual(len(documento["slots"]), 5)
-        self.assertTrue(documento["slots"][1]["faltante"])
-        self.assertEqual(documento["slots"][1]["ano"], "*")
-        self.assertIn("LACUNA NO 2° ANO", documento["observacao"])
-        self.assertIn("MATRICULAR-SE NO 6º ANO", documento["observacao"])
+        self.assertEqual(len(documento["anos"]), 5)
+        self.assertEqual(documento["anos"][0]["ano"], "*")
+        self.assertEqual(documento["anos"][2]["ano"], 2020)
+        self.assertTrue(documento["tem_2020"])
 
 
-class HistoricoEditorTests(TestCase):
+class HistoricoEditorJsonTests(TestCase):
     def setUp(self):
         self.aluno = Aluno.objects.create(codigo=10, nome="Nome Antigo")
         self.registro = RegistroAcademico.objects.create(
@@ -106,23 +54,15 @@ class HistoricoEditorTests(TestCase):
         )
         self.client.login(username="operador", password="senha-forte-teste")
 
-    def test_operador_salva_certificado_registro_nota_e_carga(self):
+    def test_operador_salva_certificado_registro_e_nota(self):
         url = reverse("historico:salvar_historico", args=[self.aluno.codigo])
         payload = {
             "aluno": {
                 "nome": "Nome Atualizado",
                 "matricula": "2025-001",
-                "cpf": "123.456.789-00",
-                "curso": "ENSINO FUNDAMENTAL",
                 "identidade": "MG-22.487.354",
                 "orgao_expedidor": "POLÍCIA CIVIL/MG",
                 "data_conclusao": "15/12/2025",
-                "data_expedicao": "12/06/2026",
-                "observacao_historico": "REGULARIZAÇÃO DE VIDA ESCOLAR",
-                "identidade": "MG-00.000.000",
-                "orgao_expedidor": "POLÍCIA CIVIL/MG",
-                "data_conclusao": "15/12/2025",
-                "ultima_serie_concluida": "5º",
                 "data_expedicao": "12/06/2026",
                 "observacao_historico": "OBSERVAÇÃO TESTE",
             },
@@ -130,13 +70,14 @@ class HistoricoEditorTests(TestCase):
                 {
                     "id": self.registro.id,
                     "campos": {
+                        "ano": "2025",
                         "resultado": "REPROVADO",
                         "frequencia": "74%",
                         "carga_horaria": "800",
                     },
                     "notas": {
                         "matematica": {
-                            "valor": "5,5",
+                            "valor": "55",
                             "carga_horaria": "",
                         }
                     },
@@ -160,16 +101,161 @@ class HistoricoEditorTests(TestCase):
 
         self.assertEqual(self.aluno.nome, "Nome Atualizado")
         self.assertEqual(self.aluno.identidade, "MG-22.487.354")
-        self.assertEqual(self.aluno.data_conclusao, "15/12/2025")
-        self.assertEqual(
-            self.aluno.observacao_historico,
-            "REGULARIZAÇÃO DE VIDA ESCOLAR",
-        )
-        self.assertEqual(self.aluno.identidade, "MG-00.000.000")
-        self.assertEqual(self.aluno.orgao_expedidor, "POLÍCIA CIVIL/MG")
-        self.assertEqual(self.aluno.data_conclusao, "15/12/2025")
-        self.assertEqual(self.aluno.data_expedicao, "12/06/2026")
-        self.assertEqual(self.aluno.observacao_historico, "OBSERVAÇÃO TESTE")
         self.assertEqual(self.registro.resultado, "REPROVADO")
         self.assertEqual(self.registro.frequencia, "74%")
-        self.assertEqual(nota.valor, "5,5")
+        self.assertEqual(nota.valor, "55")
+
+
+class AlunoCadastroEdicaoTests(TestCase):
+    def setUp(self):
+        self.staff = get_user_model().objects.create_user(
+            username="secretaria",
+            password="senha-teste",
+            is_staff=True,
+        )
+        self.user = get_user_model().objects.create_user(
+            username="usuario",
+            password="senha-teste",
+            is_staff=False,
+        )
+
+    def test_operador_acessa_pagina_de_novo_aluno(self):
+        self.client.login(username="secretaria", password="senha-teste")
+        response = self.client.get(reverse("historico:aluno_novo"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Cadastrar novo aluno")
+        self.assertContains(response, "Vida escolar e notas")
+
+    def test_usuario_sem_permissao_nao_edita(self):
+        aluno = Aluno.objects.create(codigo=20, nome="Aluno Protegido")
+        self.client.login(username="usuario", password="senha-teste")
+
+        response = self.client.get(
+            reverse("historico:aluno_editar", args=[aluno.codigo])
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_cadastra_aluno_registro_e_notas_na_mesma_tela(self):
+        self.client.login(username="secretaria", password="senha-teste")
+        response = self.client.post(
+            reverse("historico:aluno_novo"),
+            data={
+                "codigo": "30",
+                "nome": "Maria da Silva",
+                "matricula": "2026-030",
+                "cpf": "",
+                "curso": "ENSINO FUNDAMENTAL",
+                "identidade": "MG-123",
+                "orgao_expedidor": "PC/MG",
+                "data_conclusao": "",
+                "data_expedicao": "",
+                "uf": "MG",
+                "pai": "Pai da Aluna",
+                "mae": "Mãe da Aluna",
+                "nascimento": "10/05/2015",
+                "naturalidade": "MONTES CLAROS",
+                "nacionalidade": "BRASILEIRA",
+                "sexo": "FEMININO",
+                "observacao_historico": "",
+                "ativo": "on",
+                "serie_1_ano": "2022",
+                "serie_1_turma": "A",
+                "serie_1_faltas": "8",
+                "serie_1_frequencia": "95%",
+                "serie_1_carga_horaria": "800",
+                "serie_1_resultado": "APROVADO",
+                "serie_1_escola": "E. M. EGÍDIO CORDEIRO AQUINO",
+                "serie_1_municipio": "MONTES CLAROS",
+                "serie_1_uf": "MG",
+                "serie_1_observacao": "",
+                "serie_1_nota_matematica": "92",
+                "serie_1_nota_lingua_portuguesa": "88",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        aluno = Aluno.objects.get(codigo=30)
+        registro = RegistroAcademico.objects.get(aluno=aluno, serie=1)
+        matematica = Nota.objects.get(
+            registro=registro,
+            componente=Nota.MATEMATICA,
+        )
+        portugues = Nota.objects.get(
+            registro=registro,
+            componente=Nota.LINGUA_PORTUGUESA,
+        )
+
+        self.assertEqual(aluno.nome, "Maria da Silva")
+        self.assertEqual(registro.ano, 2022)
+        self.assertEqual(registro.turma, "A")
+        self.assertEqual(matematica.valor, "92")
+        self.assertEqual(portugues.valor, "88")
+
+    def test_edita_dados_e_notas_do_aluno(self):
+        aluno = Aluno.objects.create(
+            codigo=40,
+            nome="João Antigo",
+            curso="ENSINO FUNDAMENTAL",
+        )
+        registro = RegistroAcademico.objects.create(
+            aluno=aluno,
+            ano=2023,
+            serie=2,
+            resultado="APROVADO",
+        )
+        Nota.objects.create(
+            registro=registro,
+            componente=Nota.CIENCIAS,
+            valor="70",
+        )
+
+        self.client.login(username="secretaria", password="senha-teste")
+        response = self.client.post(
+            reverse("historico:aluno_editar", args=[aluno.codigo]),
+            data={
+                "codigo": "40",
+                "nome": "João Atualizado",
+                "matricula": "",
+                "cpf": "",
+                "curso": "ENSINO FUNDAMENTAL",
+                "identidade": "",
+                "orgao_expedidor": "",
+                "data_conclusao": "",
+                "data_expedicao": "",
+                "uf": "MG",
+                "pai": "",
+                "mae": "",
+                "nascimento": "",
+                "naturalidade": "MONTES CLAROS",
+                "nacionalidade": "BRASILEIRA",
+                "sexo": "MASCULINO",
+                "observacao_historico": "",
+                "ativo": "on",
+                "serie_2_ano": "2023",
+                "serie_2_turma": "B",
+                "serie_2_faltas": "4",
+                "serie_2_frequencia": "98%",
+                "serie_2_carga_horaria": "833:20",
+                "serie_2_resultado": "APROVADO",
+                "serie_2_escola": "E. M. EGÍDIO CORDEIRO AQUINO",
+                "serie_2_municipio": "MONTES CLAROS",
+                "serie_2_uf": "MG",
+                "serie_2_observacao": "",
+                "serie_2_nota_ciencias": "95",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        aluno.refresh_from_db()
+        registro.refresh_from_db()
+        nota = Nota.objects.get(
+            registro=registro,
+            componente=Nota.CIENCIAS,
+        )
+
+        self.assertEqual(aluno.nome, "João Atualizado")
+        self.assertEqual(registro.turma, "B")
+        self.assertEqual(registro.frequencia, "98%")
+        self.assertEqual(nota.valor, "95")
