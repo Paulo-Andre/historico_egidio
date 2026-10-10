@@ -3,7 +3,56 @@ from django import forms
 from .models import Aluno
 
 
+UF_CHOICES = [
+    ("", "Selecione..."),
+    ("AC", "AC — Acre"),
+    ("AL", "AL — Alagoas"),
+    ("AP", "AP — Amapá"),
+    ("AM", "AM — Amazonas"),
+    ("BA", "BA — Bahia"),
+    ("CE", "CE — Ceará"),
+    ("DF", "DF — Distrito Federal"),
+    ("ES", "ES — Espírito Santo"),
+    ("GO", "GO — Goiás"),
+    ("MA", "MA — Maranhão"),
+    ("MT", "MT — Mato Grosso"),
+    ("MS", "MS — Mato Grosso do Sul"),
+    ("MG", "MG — Minas Gerais"),
+    ("PA", "PA — Pará"),
+    ("PB", "PB — Paraíba"),
+    ("PR", "PR — Paraná"),
+    ("PE", "PE — Pernambuco"),
+    ("PI", "PI — Piauí"),
+    ("RJ", "RJ — Rio de Janeiro"),
+    ("RN", "RN — Rio Grande do Norte"),
+    ("RS", "RS — Rio Grande do Sul"),
+    ("RO", "RO — Rondônia"),
+    ("RR", "RR — Roraima"),
+    ("SC", "SC — Santa Catarina"),
+    ("SP", "SP — São Paulo"),
+    ("SE", "SE — Sergipe"),
+    ("TO", "TO — Tocantins"),
+]
+
+SEXO_CHOICES = [
+    ("", "Selecione..."),
+    ("FEMININO", "Feminino"),
+    ("MASCULINO", "Masculino"),
+]
+
+
 class AlunoCadastroForm(forms.ModelForm):
+    uf = forms.ChoiceField(
+        choices=UF_CHOICES,
+        required=False,
+        label="UF de nascimento",
+    )
+    sexo = forms.ChoiceField(
+        choices=SEXO_CHOICES,
+        required=False,
+        label="Sexo",
+    )
+
     class Meta:
         model = Aluno
         fields = [
@@ -36,21 +85,40 @@ class AlunoCadastroForm(forms.ModelForm):
             "orgao_expedidor": "Órgão expedidor / Estado",
             "data_conclusao": "Data de conclusão",
             "data_expedicao": "Data de expedição",
-            "uf": "UF de nascimento",
             "pai": "Nome do pai",
             "mae": "Nome da mãe",
             "nascimento": "Data de nascimento",
             "naturalidade": "Naturalidade",
             "nacionalidade": "Nacionalidade",
-            "sexo": "Sexo",
             "observacao_historico": "Observações do histórico",
             "ativo": "Aluno ativo",
         }
         widgets = {
             "observacao_historico": forms.Textarea(
-                attrs={"rows": 4, "placeholder": "Observações que devem constar no histórico"}
+                attrs={
+                    "rows": 4,
+                    "placeholder": "Observações que devem constar no histórico",
+                }
             ),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Preserva valores antigos/importados que eventualmente não estejam
+        # na lista padronizada, sem impedir a edição do cadastro.
+        if self.instance and self.instance.pk:
+            if self.instance.uf and self.instance.uf not in dict(self.fields["uf"].choices):
+                self.fields["uf"].choices = list(self.fields["uf"].choices) + [
+                    (self.instance.uf, self.instance.uf)
+                ]
+            if (
+                self.instance.sexo
+                and self.instance.sexo not in dict(self.fields["sexo"].choices)
+            ):
+                self.fields["sexo"].choices = list(self.fields["sexo"].choices) + [
+                    (self.instance.sexo, self.instance.sexo)
+                ]
 
     def clean_codigo(self):
         codigo = self.cleaned_data["codigo"]
