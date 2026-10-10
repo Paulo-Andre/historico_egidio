@@ -34,6 +34,28 @@ class HistoricoServiceTests(TestCase):
         self.assertEqual(dados["carga_horaria"], "820:00")
         self.assertEqual(dados["media_minima_num"], "60")
 
+    def test_modelo_oficial_sempre_monta_primeiro_ao_quinto_ano(self):
+        aluno = Aluno.objects.create(codigo=2, nome="Aluna Modelo")
+        ConfiguracaoAno.objects.create(
+            ano=2025,
+            ch_anual="833.333333",
+            dias_letivos="200",
+            media_minima="0.6",
+        )
+        RegistroAcademico.objects.create(
+            aluno=aluno,
+            ano=2025,
+            serie=5,
+            resultado="APROVADO",
+        )
+
+        oficial = historico_oficial_do_aluno(aluno)
+        self.assertEqual(len(oficial["anos"]), 5)
+        self.assertEqual(oficial["anos"][0]["ano"], "*")
+        self.assertEqual(oficial["anos"][4]["ano"], 2025)
+        self.assertEqual(oficial["anos"][4]["carga_horaria"], "833:20")
+        self.assertEqual(oficial["anos"][4]["media_minima"], "60%")
+
     def test_documento_tem_cinco_anos_e_preserva_lacuna_com_asterisco(self):
         aluno = Aluno.objects.create(
             codigo=2,
@@ -92,6 +114,11 @@ class HistoricoEditorTests(TestCase):
                 "matricula": "2025-001",
                 "cpf": "123.456.789-00",
                 "curso": "ENSINO FUNDAMENTAL",
+                "identidade": "MG-22.487.354",
+                "orgao_expedidor": "POLÍCIA CIVIL/MG",
+                "data_conclusao": "15/12/2025",
+                "data_expedicao": "12/06/2026",
+                "observacao_historico": "REGULARIZAÇÃO DE VIDA ESCOLAR",
                 "identidade": "MG-00.000.000",
                 "orgao_expedidor": "POLÍCIA CIVIL/MG",
                 "data_conclusao": "15/12/2025",
@@ -132,6 +159,12 @@ class HistoricoEditorTests(TestCase):
         )
 
         self.assertEqual(self.aluno.nome, "Nome Atualizado")
+        self.assertEqual(self.aluno.identidade, "MG-22.487.354")
+        self.assertEqual(self.aluno.data_conclusao, "15/12/2025")
+        self.assertEqual(
+            self.aluno.observacao_historico,
+            "REGULARIZAÇÃO DE VIDA ESCOLAR",
+        )
         self.assertEqual(self.aluno.identidade, "MG-00.000.000")
         self.assertEqual(self.aluno.orgao_expedidor, "POLÍCIA CIVIL/MG")
         self.assertEqual(self.aluno.data_conclusao, "15/12/2025")
