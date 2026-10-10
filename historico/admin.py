@@ -117,6 +117,7 @@ class RegistroAcademicoAdmin(admin.ModelAdmin):
         "ano",
         "serie",
         "turma",
+        "professor_responsavel",
         "aluno",
         "carga_horaria",
         "frequencia",
@@ -132,7 +133,12 @@ class RegistroAcademicoAdmin(admin.ModelAdmin):
         "resultado",
         "matriz_curricular",
     )
-    search_fields = ("aluno__nome", "nome_original", "turma")
+    search_fields = (
+        "aluno__nome",
+        "nome_original",
+        "turma",
+        "professor_responsavel",
+    )
     autocomplete_fields = ("aluno", "matriz_curricular")
     inlines = [NotaInline]
 
