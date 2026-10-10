@@ -40,6 +40,11 @@ SEXO_CHOICES = [
     ("MASCULINO", "Masculino"),
 ]
 
+CURSO_CHOICES = [
+    ("", "Selecione..."),
+    ("ENSINO FUNDAMENTAL", "Ensino Fundamental"),
+]
+
 
 class AlunoCadastroForm(forms.ModelForm):
     uf = forms.ChoiceField(
@@ -51,6 +56,11 @@ class AlunoCadastroForm(forms.ModelForm):
         choices=SEXO_CHOICES,
         required=False,
         label="Sexo",
+    )
+    curso = forms.ChoiceField(
+        choices=CURSO_CHOICES,
+        required=False,
+        label="Curso",
     )
 
     class Meta:
@@ -118,6 +128,13 @@ class AlunoCadastroForm(forms.ModelForm):
             ):
                 self.fields["sexo"].choices = list(self.fields["sexo"].choices) + [
                     (self.instance.sexo, self.instance.sexo)
+                ]
+            if (
+                self.instance.curso
+                and self.instance.curso not in dict(self.fields["curso"].choices)
+            ):
+                self.fields["curso"].choices = list(self.fields["curso"].choices) + [
+                    (self.instance.curso, self.instance.curso)
                 ]
 
     def clean_codigo(self):
