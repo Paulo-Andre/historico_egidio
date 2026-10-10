@@ -654,3 +654,76 @@ class ImportacaoNotasPdfPreservacaoHistoricoTests(TestCase):
             ).count(),
             5,
         )
+
+
+
+class LimpezaTotalNotasAdminTests(TestCase):
+    def setUp(self):
+        self.superuser = get_user_model().objects.create_superuser(
+            username="admin-limpeza",
+            password="senha-teste",
+            email="admin@example.com",
+        )
+        self.staff = get_user_model().objects.create_user(
+            username="staff-limpeza",
+            password="senha-teste",
+            is_staff=True,
+        )
+        self.aluno = Aluno.objects.create(
+            codigo=900,
+            nome="ALUNO PARA LIMPEZA",
+        )
+        self.registro = RegistroAcademico.objects.create(
+            aluno=self.aluno,
+            nome_original=self.aluno.nome,
+            ano=2025,
+            serie=5,
+        )
+        Nota.objects.create(
+            registro=self.registro,
+            componente=Nota.MATEMATICA,
+            valor="80",
+        )
+        Nota.objects.create(
+            registro=self.registro,
+            componente=Nota.LINGUA_PORTUGUESA,
+            valor="90",
+        )
+
+    def test_superusuario_limpa_todas_as_notas_sem_apagar_aluno_ou_registro(self):
+        self.client.login(username="admin-limpeza", password="senha-teste")
+
+        response = self.client.post(
+            reverse("admin:historico_nota_limpar_todas"),
+            data={"confirmacao": "APAGAR TODAS AS NOTAS"},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Nota.objects.count(), 0)
+        self.assertTrue(Aluno.objects.filter(pk=self.aluno.pk).exists())
+        self.assertTrue(
+            RegistroAcademico.objects.filter(pk=self.registro.pk).exists()
+        )
+        self.assertContains(response, "Os alunos e registros acadêmicos foram preservados")
+
+    def test_confirmacao_incorreta_nao_apaga_notas(self):
+        self.client.login(username="admin-limpeza", password="senha-teste")
+
+        response = self.client.post(
+            reverse("admin:historico_nota_limpar_todas"),
+            data={"confirmacao": "apagar"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Nota.objects.count(), 2)
+        self.assertContains(response, "Digite exatamente")
+
+    def test_staff_sem_superuser_nao_pode_limpar_todas_as_notas(self):
+        self.client.login(username="staff-limpeza", password="senha-teste")
+
+        response = self.client.get(
+            reverse("admin:historico_nota_limpar_todas")
+        )
+
+        self.assertEqual(response.status_code, 403)
