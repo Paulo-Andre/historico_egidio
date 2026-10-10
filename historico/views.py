@@ -208,6 +208,7 @@ def historico_impressao(request, codigo):
             "tem_2020": oficial["tem_2020"],
             "nascimento": oficial["nascimento"],
             "data_conclusao": oficial["data_conclusao"],
+            "ultima_serie": oficial["ultima_serie"],
             "data_expedicao": oficial["data_expedicao"],
             "observacao_historico": oficial["observacao_historico"],
             "can_edit": bool(
