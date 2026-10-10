@@ -86,6 +86,22 @@ ALIASES_CAMPOS = {
 }
 
 
+# Estrutura da "ATA DE RESULTADO FINAL DE APROVEITAMENTO" do SAEWEB.
+# Cada componente ocupa 3 colunas: N (nota), F (faltas) e RF.
+# O histórico escolar usa a coluna N dos nove componentes abaixo.
+SAEWEB_NOTA_COLUNAS = {
+    5: Nota.LINGUA_PORTUGUESA,
+    11: Nota.ARTE,
+    14: Nota.EDUCACAO_FISICA,
+    17: Nota.LINGUA_INGLESA,
+    20: Nota.MATEMATICA,
+    23: Nota.CIENCIAS,
+    26: Nota.GEOGRAFIA,
+    29: Nota.HISTORIA,
+    32: Nota.EDUCACAO_RELIGIOSA,
+}
+
+
 class ErroImportacaoNotasPdf(ValueError):
     pass
 
@@ -145,6 +161,105 @@ def _serie(valor):
         if match:
             return int(match.group(1))
     return None
+
+
+def _contexto_ata_saeweb(texto, anterior=None):
+    contexto = dict(anterior or {})
+    texto = texto or ""
+
+    ano_match = re.search(
+        r"ATA\s+DE\s+RESULTADO\s+FINAL\s+DE\s+APROVEITAMENTO\s*-\s*ANO\s*:\s*(\d{4})",
+        texto,
+        flags=re.IGNORECASE,
+    )
+    if ano_match:
+        contexto["ano"] = int(ano_match.group(1))
+
+    turma_match = re.search(
+        r"Turma\s*:\s*(.*?)\s+Ensino\s*:",
+        texto,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if turma_match:
+        contexto["turma"] = _texto(turma_match.group(1))
+
+    serie_match = re.search(
+        r"(?:Série|Serie)\s*/\s*Etapa\s*:\s*(.*?)\s+Turno\s*:",
+        texto,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if serie_match:
+        contexto["serie"] = _serie(serie_match.group(1))
+
+    return contexto
+
+
+def _nota_saeweb(valor):
+    valor = _texto(valor)
+    if not valor or valor in {"-", "—", "–"}:
+        return ""
+    return valor
+
+
+def _parece_tabela_saeweb(tabela):
+    if not tabela:
+        return False
+
+    for linha in tabela[:6]:
+        if not linha or len(linha) < 36:
+            continue
+        primeira = _normalizar(linha[0] if len(linha) > 0 else "")
+        segunda = _normalizar(linha[1] if len(linha) > 1 else "")
+        ultima = _normalizar(linha[35] if len(linha) > 35 else "")
+        if (
+            primeira in {"n", "no", "n o", "numero", ""}
+            and segunda == "estudante"
+            and "situacao final" in ultima
+        ):
+            return True
+    return False
+
+
+def _itens_tabela_saeweb(tabela, contexto, numero_pagina):
+    if not _parece_tabela_saeweb(tabela):
+        return []
+    if not contexto.get("ano") or not contexto.get("serie"):
+        return []
+
+    itens = []
+    for linha in tabela:
+        if not linha or len(linha) < 36:
+            continue
+
+        numero = _texto(linha[0])
+        nome = _texto(linha[1])
+        if not numero.isdigit() or not nome:
+            continue
+
+        notas = {}
+        for indice, componente in SAEWEB_NOTA_COLUNAS.items():
+            valor = _nota_saeweb(linha[indice])
+            if valor:
+                notas[componente] = valor
+
+        # Alunos transferidos/remanejados podem aparecer sem notas; eles não
+        # entram nesta importação de aproveitamento, mas não geram erro.
+        if not notas:
+            continue
+
+        itens.append(
+            {
+                "nome": nome,
+                "turma": _texto(contexto.get("turma")),
+                "ano": contexto["ano"],
+                "serie": contexto["serie"],
+                "resultado": _texto(linha[35]),
+                "notas": notas,
+                "_pagina": numero_pagina,
+            }
+        )
+
+    return itens
 
 
 def _mapear_cabecalho(celulas):
@@ -207,6 +322,7 @@ def _linha_tabela_para_item(linha, mapa, pagina):
         "turma": "",
         "ano": None,
         "serie": None,
+        "resultado": "",
         "notas": {},
         "_pagina": pagina,
     }
@@ -233,10 +349,19 @@ def _linha_tabela_para_item(linha, mapa, pagina):
     return dados
 
 
-def _extrair_tabelas_pagina(pagina, numero_pagina):
+def _extrair_tabelas_pagina(pagina, numero_pagina, contexto=None):
     itens = []
     for tabela in pagina.extract_tables() or []:
         if not tabela:
+            continue
+
+        itens_saeweb = _itens_tabela_saeweb(
+            tabela,
+            contexto or {},
+            numero_pagina,
+        )
+        if itens_saeweb:
+            itens.extend(itens_saeweb)
             continue
 
         cabecalho = None
@@ -323,6 +448,7 @@ def _parsear_blocos_texto(texto, pagina):
             "turma": turma,
             "ano": _ano(ano_texto),
             "serie": _serie(serie_texto),
+            "resultado": "",
             "notas": {},
             "_pagina": pagina,
         }
@@ -365,11 +491,14 @@ def _mesclar_itens(itens):
                 "turma": item.get("turma", ""),
                 "ano": item.get("ano"),
                 "serie": item.get("serie"),
+                "resultado": item.get("resultado", ""),
                 "notas": {},
                 "_paginas": [],
             }
 
         destino = agrupados[chave]
+        if not destino.get("resultado") and item.get("resultado"):
+            destino["resultado"] = item["resultado"]
         destino["notas"].update(
             {
                 componente: valor
@@ -398,16 +527,29 @@ def extrair_notas_pdf(caminho):
                     f"O limite é {MAX_PAGINAS} páginas."
                 )
 
+            contexto_saeweb = {}
             for numero, pagina in enumerate(pdf.pages, start=1):
-                tabelas = _extrair_tabelas_pagina(pagina, numero)
-                itens.extend(tabelas)
-
                 texto_pagina = pagina.extract_text() or ""
                 if texto_pagina.strip():
                     paginas_com_texto += 1
 
-                # O parser textual complementa PDFs nos quais a tabela não é
-                # detectada pelo mecanismo geométrico.
+                # No relatório SAEWEB, páginas de continuação nem sempre repetem
+                # ano/turma/série. Mantemos o contexto da página anterior até
+                # surgir o cabeçalho da próxima turma.
+                contexto_saeweb = _contexto_ata_saeweb(
+                    texto_pagina,
+                    contexto_saeweb,
+                )
+
+                tabelas = _extrair_tabelas_pagina(
+                    pagina,
+                    numero,
+                    contexto_saeweb,
+                )
+                itens.extend(tabelas)
+
+                # O parser textual complementa PDFs de outros formatos nos
+                # quais a tabela não é detectada pelo mecanismo geométrico.
                 if not tabelas:
                     itens.extend(_parsear_blocos_texto(texto_pagina, numero))
 
@@ -667,6 +809,7 @@ def aplicar_notas_pdf(resultado):
                 ano=item["ano"],
                 serie=item["serie"],
                 turma=_texto(item.get("turma"))[:120],
+                resultado=_texto(item.get("resultado"))[:80],
                 carga_horaria=(config.ch_anual if config else ""),
                 escola=(config.escola if config else ""),
                 municipio=(config.municipio if config else "MONTES CLAROS"),
@@ -674,8 +817,24 @@ def aplicar_notas_pdf(resultado):
             )
             registros_criados += 1
         else:
-            # Registro de outro envio/ano já existente: apenas preserva.
-            # Turma, nome_original e demais campos não são sobrescritos.
+            # Modo aditivo: nunca substitui informação preenchida. Apenas
+            # completa campos vazios do mesmo aluno + ano + série.
+            alterados = []
+            turma = _texto(item.get("turma"))[:120]
+            resultado_item = _texto(item.get("resultado"))[:80]
+
+            if not registro.turma and turma:
+                registro.turma = turma
+                alterados.append("turma")
+            if not registro.resultado and resultado_item:
+                registro.resultado = resultado_item
+                alterados.append("resultado")
+            if not registro.nome_original:
+                registro.nome_original = aluno.nome
+                alterados.append("nome_original")
+
+            if alterados:
+                registro.save(update_fields=alterados)
             registros_existentes += 1
 
         for componente, valor in item["notas"].items():
