@@ -416,14 +416,14 @@
   flex-direction: column;
   justify-content: space-between;
   gap: .65mm;
-  font-size: 5.15pt;
-  line-height: 1.18;
+  font-size: 5.9pt;
+  line-height: 1.2;
   text-align: center;
 }
 
 .legal-column h3 {
   margin: 0 0 .4mm;
-  font-size: 5.35pt;
+  font-size: 6.15pt;
   font-weight: 700;
   text-align: left;
 }
@@ -441,7 +441,7 @@
 .legal-divider {
   margin: 0;
   flex: 0 0 auto;
-  font-size: 4.7pt;
+  font-size: 5.2pt;
   letter-spacing: -.02em;
 }
 
@@ -449,12 +449,12 @@
    legibilidade sem ultrapassar a área reservada às observações. */
 .legal-column--2020 {
   gap: .45mm;
-  font-size: 4.75pt;
-  line-height: 1.14;
+  font-size: 5.45pt;
+  line-height: 1.17;
 }
 
 .legal-column--2020 h3 {
-  font-size: 5pt;
+  font-size: 5.7pt;
 }
 
 .bottom-observation {
