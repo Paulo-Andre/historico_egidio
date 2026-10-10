@@ -965,6 +965,16 @@ class RelatorioCompletoAlunoTests(TestCase):
 
         self.assertNotContains(response, "31/12/2099")
 
+    def test_central_de_relatorios_nao_carrega_alunos_sem_filtro(self):
+        response = self.client.get(reverse("historico:relatorios"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, self.aluno.nome)
+        self.assertContains(
+            response,
+            "Faça uma pesquisa para localizar o aluno.",
+        )
+
     def test_central_de_relatorios_localiza_aluno(self):
         response = self.client.get(
             reverse("historico:relatorios"),
