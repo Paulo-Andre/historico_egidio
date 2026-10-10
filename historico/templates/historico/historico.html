@@ -4,7 +4,7 @@
 {% block title %}Histórico Escolar — {{ aluno.nome }}{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'historico/css/document.css' %}?v=20261010-05">
+<link rel="stylesheet" href="{% static 'historico/css/document.css' %}?v=20261010-06">
 {% endblock %}
 
 {% block content %}
@@ -49,78 +49,70 @@
         <h1>CERTIFICADO DE CONCLUSÃO</h1>
         <table class="certificate-table">
           <colgroup>
-            <col class="cert-col-1">
-            <col class="cert-col-2">
-            <col class="cert-col-3">
-            <col class="cert-col-4">
-            <col class="cert-col-5">
-            <col class="cert-col-6">
-            <col class="cert-col-7">
-            <col class="cert-col-8">
-            <col class="cert-col-9">
-            <col class="cert-col-10">
-            <col class="cert-col-11">
-            <col class="cert-col-12">
+            <col class="cert-d"><col class="cert-e"><col class="cert-f"><col class="cert-g"><col class="cert-h">
+            <col class="cert-i"><col class="cert-j"><col class="cert-k"><col class="cert-l"><col class="cert-m">
+            <col class="cert-n"><col class="cert-o"><col class="cert-p"><col class="cert-q"><col class="cert-r">
+            <col class="cert-s"><col class="cert-t"><col class="cert-u"><col class="cert-v"><col class="cert-w">
+            <col class="cert-x"><col class="cert-y"><col class="cert-z"><col class="cert-aa"><col class="cert-ab">
           </colgroup>
           <tbody>
             <tr>
-              <th class="certificate-label certificate-label--intro">Certificamos que</th>
-              <td colspan="11" class="value strong uppercase"
+              <th colspan="3" class="certificate-label">Certificamos que</th>
+              <td colspan="22" class="value strong uppercase"
                   contenteditable="{{ can_edit|yesno:'true,false' }}"
                   data-model="aluno" data-field="nome">{{ aluno.nome }}</td>
             </tr>
             <tr>
-              <th>Natural de</th>
-              <td colspan="4" class="value uppercase"
+              <th colspan="2" class="certificate-label">Natural de</th>
+              <td colspan="6" class="value uppercase"
                   contenteditable="{{ can_edit|yesno:'true,false' }}"
                   data-model="aluno" data-field="naturalidade">{{ aluno.naturalidade }}</td>
-              <th>UF</th>
-              <td class="value uppercase"
+              <th class="certificate-label center-label">UF</th>
+              <td class="value center"
                   contenteditable="{{ can_edit|yesno:'true,false' }}"
                   data-model="aluno" data-field="uf">{{ aluno.uf }}</td>
-              <th>Nacionalidade</th>
-              <td colspan="2" class="value uppercase"
+              <th colspan="3" class="certificate-label">Nacionalidade</th>
+              <td colspan="4" class="value uppercase"
                   contenteditable="{{ can_edit|yesno:'true,false' }}"
                   data-model="aluno" data-field="nacionalidade">{{ aluno.nacionalidade }}</td>
-              <th class="certificate-label certificate-label--sexo">Sexo</th>
-              <td class="value uppercase sex-value"
+              <th class="certificate-label center-label">Sexo</th>
+              <td colspan="7" class="value uppercase sex-value"
                   contenteditable="{{ can_edit|yesno:'true,false' }}"
                   data-model="aluno" data-field="sexo">{{ aluno.sexo }}</td>
             </tr>
             <tr>
-              <th>Nascido(a) em</th>
+              <th colspan="3" class="certificate-label">Nascido(a) em</th>
               <td class="value center">{{ nascimento.dia }}</td>
-              <th>de</th>
-              <td colspan="2" class="value center uppercase">{{ nascimento.mes }}</td>
-              <th>de</th>
+              <th class="certificate-label center-label">de</th>
+              <td colspan="3" class="value center uppercase">{{ nascimento.mes }}</td>
+              <th class="certificate-label center-label">de</th>
               <td class="value center">{{ nascimento.ano }}</td>
-              <th>Filho(a) de</th>
-              <td colspan="4" class="value uppercase"
+              <th colspan="2" class="certificate-label">Filho(a) de</th>
+              <td colspan="13" class="value uppercase"
                   contenteditable="{{ can_edit|yesno:'true,false' }}"
                   data-model="aluno" data-field="pai">{{ aluno.pai }}</td>
             </tr>
             <tr>
-              <th>e de</th>
-              <td colspan="6" class="value uppercase"
+              <th class="certificate-label">e de</th>
+              <td colspan="12" class="value uppercase"
                   contenteditable="{{ can_edit|yesno:'true,false' }}"
                   data-model="aluno" data-field="mae">{{ aluno.mae }}</td>
-              <th class="certificate-label certificate-label--identity">Carteira de Identidade nº</th>
-              <td colspan="4" class="value uppercase"
+              <th colspan="4" class="certificate-label certificate-label--identity">Carteira de Identidade nº</th>
+              <td colspan="8" class="value uppercase"
                   contenteditable="{{ can_edit|yesno:'true,false' }}"
                   data-model="aluno" data-field="identidade">{{ aluno.identidade }}</td>
             </tr>
             <tr>
-              <th>Órgão expedidor/Estado</th>
+              <th colspan="4" class="certificate-label">Órgão expedidor/Estado</th>
               <td colspan="5" class="value uppercase"
                   contenteditable="{{ can_edit|yesno:'true,false' }}"
                   data-model="aluno" data-field="orgao_expedidor">{{ aluno.orgao_expedidor }}</td>
-              <th>concluiu em</th>
-              <td colspan="2" class="value center"
-                  contenteditable="{{ can_edit|yesno:'true,false' }}"
-                  data-model="aluno" data-field="data_conclusao">{{ data_conclusao }}</td>
-              <th>o</th>
-              <td class="value center strong">5º</td>
-              <td class="plain-cell">Ano do Ensino Fundamental</td>
+              <th colspan="2" class="certificate-label certificate-label--conclusion">concluiu em</th>
+              <td colspan="3" class="value center">{{ data_conclusao }}</td>
+              <th class="certificate-label center-label">o</th>
+              <td colspan="2" class="value center strong">{% if ultima_serie %}{{ ultima_serie }}º{% endif %}</td>
+              <td colspan="5" class="plain-cell">Ano do Ensino Fundamental</td>
+              <td colspan="3"></td>
             </tr>
           </tbody>
         </table>
