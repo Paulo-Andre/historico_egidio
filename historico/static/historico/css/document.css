@@ -233,19 +233,15 @@
 
 .official-history-table th,
 .official-history-table td {
+  box-sizing: border-box;
   padding: .25mm .35mm;
-  border-right: .42pt solid var(--doc-black);
-  border-bottom: .42pt solid var(--doc-black);
+  border: .42pt solid var(--doc-black);
   background: #fff;
   color: var(--doc-black);
   text-align: center;
   vertical-align: middle;
   overflow: hidden;
-  overflow-wrap: anywhere;
-}
-
-.official-history-table tr > *:last-child {
-  border-right: 0;
+  overflow-wrap: normal;
 }
 
 .official-history-table thead .knowledge-row {
@@ -335,9 +331,10 @@
 }
 
 .row-label {
-  padding-left: .55mm !important;
-  font-size: 6pt;
+  padding: .15mm .35mm .15mm .55mm !important;
+  font-size: 5.8pt;
   font-weight: 500;
+  letter-spacing: -.015em;
   text-align: left !important;
   white-space: nowrap;
 }
@@ -349,9 +346,7 @@
 
 .merged-value,
 .school-cell,
-.municipality-cell,
-.meta-value,
-.inline-label {
+.meta-value {
   font-size: 6pt;
 }
 
@@ -359,16 +354,39 @@
   text-align: center !important;
 }
 
-.school-cell,
-.municipality-cell {
+.school-cell {
+  padding-left: .25mm !important;
+  padding-right: .25mm !important;
   white-space: nowrap;
   text-align: center !important;
 }
 
-.inline-label {
+.municipality-combined {
+  padding: .1mm .25mm !important;
+  font-size: 5pt;
   font-weight: 500;
+  letter-spacing: -.02em;
   white-space: nowrap;
   text-align: center !important;
+}
+
+.municipality-label {
+  margin-right: .45mm;
+  font-weight: 500;
+}
+
+.annual-label {
+  padding: .1mm .18mm !important;
+  font-size: 5.45pt;
+  font-weight: 500;
+  letter-spacing: -.025em;
+  white-space: nowrap;
+  text-align: center !important;
+}
+
+.annual-label--left {
+  text-align: left !important;
+  padding-left: .35mm !important;
 }
 
 .meta-value {
@@ -376,12 +394,17 @@
   text-align: center !important;
 }
 
+.total-spacer,
 .total-cell,
 .status-cell {
-  padding: .25mm .1mm !important;
+  padding: .15mm .08mm !important;
   font-size: 6pt;
   font-weight: 500;
   white-space: nowrap;
+}
+
+.status-cell {
+  font-size: 5.8pt;
 }
 
 .legal-column {
