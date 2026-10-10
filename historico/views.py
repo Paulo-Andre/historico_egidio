@@ -96,7 +96,11 @@ def _registros_por_serie(aluno):
     queryset = (
         aluno.registros_academicos
         .prefetch_related("notas")
-        .filter(serie__gte=1, serie__lte=5)
+        .filter(
+            serie__gte=1,
+            serie__lte=5,
+            ativo_no_historico=True,
+        )
         .order_by("serie", "ano", "id")
     )
     for registro in queryset:
@@ -565,6 +569,69 @@ def aluno_detalhe(request, codigo):
     )
 
 
+@require_POST
+def alternar_relacao_academica(request, codigo, registro_id):
+    aluno = get_object_or_404(Aluno, codigo=codigo)
+
+    with transaction.atomic():
+        registro = get_object_or_404(
+            RegistroAcademico.objects.select_for_update(),
+            pk=registro_id,
+            aluno=aluno,
+        )
+        acao = (request.POST.get("acao") or "").strip().lower()
+
+        desativadas = []
+        if acao == "ativar":
+            if registro.serie is not None:
+                concorrentes = (
+                    aluno.registros_academicos
+                    .select_for_update()
+                    .filter(
+                        serie=registro.serie,
+                        ativo_no_historico=True,
+                    )
+                    .exclude(pk=registro.pk)
+                )
+                desativadas = list(
+                    concorrentes.values_list("id", flat=True)
+                )
+                concorrentes.update(ativo_no_historico=False)
+
+            registro.ativo_no_historico = True
+            registro.save(update_fields=["ativo_no_historico"])
+            status = "ativada"
+        elif acao == "desativar":
+            registro.ativo_no_historico = False
+            registro.save(update_fields=["ativo_no_historico"])
+            status = "desativada"
+        else:
+            return JsonResponse(
+                {"ok": False, "erro": "Ação inválida."},
+                status=400,
+            )
+
+    registrar_auditoria(
+        request,
+        "REQUEST_SENSIVEL",
+        entidade="RegistroAcademico",
+        objeto_id=registro.id,
+        objeto_repr=str(registro),
+        detalhes={
+            "operacao": f"relacao_{status}",
+            "aluno_codigo": aluno.codigo,
+            "ano": registro.ano,
+            "serie": registro.serie,
+            "turma": registro.turma,
+            "relacoes_desativadas_automaticamente": desativadas,
+            "notas_preservadas": registro.notas.count(),
+        },
+    )
+
+    destino = reverse("historico:aluno", args=[aluno.codigo])
+    return redirect(f"{destino}?relacao={status}")
+
+
 def historico_impressao(request, codigo):
     aluno = get_object_or_404(Aluno, codigo=codigo)
     documento = None
@@ -968,7 +1035,10 @@ def salvar_historico(request, codigo):
             ja_existe = (
                 aluno.registros_academicos
                 .select_for_update()
-                .filter(serie=serie)
+                .filter(
+                    serie=serie,
+                    ativo_no_historico=True,
+                )
                 .exists()
             )
             if ja_existe:
@@ -979,6 +1049,7 @@ def salvar_historico(request, codigo):
                 nome_original=aluno.nome,
                 ano=ano,
                 serie=serie,
+                ativo_no_historico=True,
             )
             novos_criados += 1
 
