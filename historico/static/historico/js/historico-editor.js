@@ -183,7 +183,14 @@
       return { id: Number(id), campos, notas };
     });
 
-    return { aluno, registros };
+    const novosRegistros = [...root.querySelectorAll("[data-new-registro-serie]")]
+      .map((element) => ({
+        serie: Number(element.dataset.newRegistroSerie),
+        ano: cleanText(element),
+      }))
+      .filter((item) => /^\d{4}$/.test(item.ano));
+
+    return { aluno, registros, novos_registros: novosRegistros };
   }
 
   function setSaveState(message, cssClass = "") {
@@ -219,6 +226,10 @@
         throw new Error(data.erro || "Não foi possível salvar.");
       }
       setSaveState("Alterações salvas", "is-saved");
+      if (data.recarregar) {
+        window.location.reload();
+        return;
+      }
     } catch (error) {
       setSaveState(error.message || "Erro ao salvar", "is-error");
     } finally {
@@ -240,6 +251,11 @@
   function onInput(event) {
     const target = event.target;
     const recordId = recordIdFromElement(target);
+
+    if (target.matches("[data-role='ano-letivo']")) {
+      setSaveState("Alterações pendentes");
+      return;
+    }
 
     if (target.matches("[data-role='nota']") && recordId) {
       evaluateRecord(recordId, true);
