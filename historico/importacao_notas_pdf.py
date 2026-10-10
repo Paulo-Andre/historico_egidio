@@ -881,8 +881,7 @@ def aplicar_notas_pdf(resultado):
             )
         except Exception as exc:
             logger.exception(
-                "Falha ao importar ATA PDF para aluno=%r ano=%r serie=%r",
-                item.get("nome"),
+                "Falha ao importar registro da ATA PDF ano=%r serie=%r",
                 item.get("ano"),
                 item.get("serie"),
             )
