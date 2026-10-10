@@ -43,7 +43,7 @@ class ConfiguracaoAno(models.Model):
     municipio = models.CharField(max_length=120, default="MONTES CLAROS")
     uf = models.CharField(max_length=2, default="MG")
     matriz_curricular = models.ForeignKey(
-        MatrizCurricularVersao,
+        "MatrizCurricularVersao",
         on_delete=models.PROTECT,
         null=True,
         blank=True,
