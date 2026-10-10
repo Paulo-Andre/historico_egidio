@@ -1196,6 +1196,29 @@ class AcessoTemporariamenteLivreTests(TestCase):
         response = self.client.get(reverse("historico:inicio"))
         self.assertEqual(response.status_code, 200)
 
+    def test_dashboard_nao_exibe_aluno_sem_pesquisa(self):
+        response = self.client.get(reverse("historico:inicio"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, self.aluno.nome)
+        self.assertNotContains(
+            response,
+            "Históricos emitidos recentemente",
+        )
+        self.assertContains(
+            response,
+            "Nenhum dado individual é exibido antes da pesquisa.",
+        )
+
+    def test_dashboard_exibe_aluno_somente_apos_pesquisa(self):
+        response = self.client.get(
+            reverse("historico:inicio"),
+            {"q": "ALUNO ACESSO TEMPORARIO"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.aluno.nome)
+
     def test_prontuario_abre_sem_login_durante_integracao(self):
         response = self.client.get(
             reverse("historico:aluno", args=[self.aluno.codigo])
