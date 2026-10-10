@@ -119,9 +119,23 @@
                   contenteditable="{{ can_edit|yesno:'true,false' }}"
                   data-model="aluno" data-field="orgao_expedidor">{{ aluno.orgao_expedidor }}</td>
               <th colspan="2" class="certificate-label certificate-label--conclusion">concluiu em</th>
-              <td colspan="3" class="value center">{{ data_conclusao }}</td>
+              <td colspan="3"
+                  class="value center editable-certificate-field"
+                  contenteditable="{{ can_edit|yesno:'true,false' }}"
+                  data-model="aluno"
+                  data-field="data_conclusao"
+                  data-optional-derived="1"
+                  data-has-manual-value="{% if aluno.data_conclusao %}1{% else %}0{% endif %}"
+                  data-placeholder="dd/mm/aaaa">{{ data_conclusao }}</td>
               <th class="certificate-label center-label">o</th>
-              <td colspan="2" class="value center strong">{% if ultima_serie %}{{ ultima_serie }}º{% endif %}</td>
+              <td colspan="2"
+                  class="value center strong editable-certificate-field"
+                  contenteditable="{{ can_edit|yesno:'true,false' }}"
+                  data-model="aluno"
+                  data-field="serie_conclusao"
+                  data-optional-derived="1"
+                  data-has-manual-value="{% if aluno.serie_conclusao %}1{% else %}0{% endif %}"
+                  data-placeholder="5º">{{ serie_conclusao }}</td>
               <td colspan="5" class="plain-cell">Ano do Ensino Fundamental</td>
               <td colspan="3"></td>
             </tr>
@@ -315,5 +329,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'historico/js/historico-editor.js' %}?v=20261010-02" defer></script>
+<script src="{% static 'historico/js/historico-editor.js' %}?v=20261010-03" defer></script>
 {% endblock %}
