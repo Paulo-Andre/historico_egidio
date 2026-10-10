@@ -238,3 +238,34 @@ class ImportacaoAlunosForm(forms.Form):
         if arquivo.size > 15 * 1024 * 1024:
             raise forms.ValidationError("O arquivo deve ter no máximo 15 MB.")
         return arquivo
+
+
+
+class ImportacaoNotasPdfForm(forms.Form):
+    arquivo = forms.FileField(
+        label="PDF com notas dos alunos",
+        help_text=(
+            "Envie um PDF contendo nome do aluno, turma, ano letivo, "
+            "série e notas."
+        ),
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": ".pdf,application/pdf",
+                "class": "file-input",
+            }
+        ),
+    )
+
+    def clean_arquivo(self):
+        arquivo = self.cleaned_data["arquivo"]
+        nome = (arquivo.name or "").lower()
+        if not nome.endswith(".pdf"):
+            raise forms.ValidationError("Envie um arquivo no formato PDF.")
+        if arquivo.size > 25 * 1024 * 1024:
+            raise forms.ValidationError("O PDF deve ter no máximo 25 MB.")
+
+        assinatura = arquivo.read(5)
+        arquivo.seek(0)
+        if assinatura != b"%PDF-":
+            raise forms.ValidationError("O arquivo enviado não é um PDF válido.")
+        return arquivo
