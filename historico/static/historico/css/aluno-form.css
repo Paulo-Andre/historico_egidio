@@ -134,6 +134,7 @@
 }
 
 .field input,
+.field select,
 .field textarea,
 .grade-field input {
   width: 100%;
@@ -153,6 +154,7 @@
 }
 
 .field input:focus,
+.field select:focus,
 .field textarea:focus,
 .grade-field input:focus {
   border-color: #65a30d;
@@ -350,4 +352,14 @@
   .form-actions {
     bottom: 6px;
   }
+}
+
+
+.field select {
+  appearance: auto;
+  cursor: pointer;
+}
+
+.field select option {
+  color: var(--ink);
 }
