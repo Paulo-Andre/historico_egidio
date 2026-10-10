@@ -1,6 +1,8 @@
 import json
+from io import BytesIO
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
@@ -373,3 +375,180 @@ class CertificadoUltimoAnoTests(TestCase):
 
         self.assertEqual(documento["ultima_serie"], 4)
         self.assertEqual(documento["data_conclusao"], "17/12/2024")
+
+
+
+class ImportacaoListaAlunosTests(TestCase):
+    def setUp(self):
+        self.staff = get_user_model().objects.create_user(
+            username="importador",
+            password="senha-teste",
+            is_staff=True,
+        )
+        self.client.login(username="importador", password="senha-teste")
+
+    def _arquivo_xlsx(self, linhas):
+        from openpyxl import Workbook
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "historico"
+        for linha in linhas:
+            ws.append(linha)
+
+        buffer = BytesIO()
+        wb.save(buffer)
+        wb.close()
+        return SimpleUploadedFile(
+            "lista.xlsx",
+            buffer.getvalue(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+
+    def test_importacao_atualiza_cria_e_preserva_quem_nao_esta_na_lista(self):
+        existente = Aluno.objects.create(
+            codigo=100,
+            nome="ALUNO EXISTENTE",
+            nascimento="10/02/2015",
+            naturalidade="DADO ANTIGO",
+            nacionalidade="BRASILEIRA",
+            sexo="MASCULINO",
+        )
+        fora_da_lista = Aluno.objects.create(
+            codigo=101,
+            nome="ALUNO QUE DEVE PERMANECER",
+            nascimento="03/03/2015",
+        )
+
+        arquivo = self._arquivo_xlsx(
+            [
+                ["E. M. EGÍDIO CORDEIRO AQUINO"],
+                ["historico"],
+                [
+                    "NOME",
+                    "PAI",
+                    "MÃE",
+                    "NASCIMENTO",
+                    "NATURALIDADE",
+                    "NACIONALIDAD",
+                    "SEXO",
+                ],
+                [
+                    "ALUNO EXISTENTE",
+                    "PAI ATUALIZADO",
+                    "MÃE ATUALIZADA",
+                    "10/02/2015",
+                    "MONTES CLAROS",
+                    "BRASILEIRA",
+                    "MASCULINO",
+                ],
+                [
+                    "ALUNO NOVO",
+                    "PAI NOVO",
+                    "MÃE NOVA",
+                    "05/06/2016",
+                    "MONTES CLAROS",
+                    "BRASILEIRA",
+                    "FEMININO",
+                ],
+            ]
+        )
+
+        previa = self.client.post(
+            reverse("historico:importar_lista_alunos"),
+            data={"acao": "previsualizar", "arquivo": arquivo},
+        )
+
+        self.assertEqual(previa.status_code, 200)
+        self.assertContains(previa, "1")
+        self.assertContains(previa, "ALUNO EXISTENTE")
+        self.assertEqual(Aluno.objects.count(), 2)
+
+        aplicado = self.client.post(
+            reverse("historico:importar_lista_alunos"),
+            data={"acao": "aplicar"},
+        )
+
+        self.assertEqual(aplicado.status_code, 200)
+        existente.refresh_from_db()
+        fora_da_lista.refresh_from_db()
+
+        self.assertEqual(existente.naturalidade, "MONTES CLAROS")
+        self.assertEqual(existente.pai, "PAI ATUALIZADO")
+        self.assertTrue(
+            Aluno.objects.filter(
+                nome="ALUNO NOVO",
+                nascimento="05/06/2016",
+            ).exists()
+        )
+        self.assertTrue(
+            Aluno.objects.filter(pk=fora_da_lista.pk).exists()
+        )
+        self.assertEqual(Aluno.objects.count(), 3)
+
+    def test_celula_vazia_da_lista_nao_apaga_dado_existente(self):
+        aluno = Aluno.objects.create(
+            codigo=200,
+            nome="ALUNO PRESERVADO",
+            nascimento="01/01/2014",
+            naturalidade="MONTES CLAROS",
+            mae="MÃE JÁ CADASTRADA",
+        )
+
+        arquivo = self._arquivo_xlsx(
+            [
+                ["NOME", "MÃE", "NASCIMENTO", "NATURALIDADE", "SEXO"],
+                [
+                    "ALUNO PRESERVADO",
+                    "",
+                    "01/01/2014",
+                    "",
+                    "MASCULINO",
+                ],
+            ]
+        )
+
+        self.client.post(
+            reverse("historico:importar_lista_alunos"),
+            data={"acao": "previsualizar", "arquivo": arquivo},
+        )
+        self.client.post(
+            reverse("historico:importar_lista_alunos"),
+            data={"acao": "aplicar"},
+        )
+
+        aluno.refresh_from_db()
+        self.assertEqual(aluno.mae, "MÃE JÁ CADASTRADA")
+        self.assertEqual(aluno.naturalidade, "MONTES CLAROS")
+        self.assertEqual(aluno.sexo, "MASCULINO")
+
+    def test_duas_colunas_sem_titulo_entre_nome_e_nascimento_viram_filiacao(self):
+        arquivo = self._arquivo_xlsx(
+            [
+                ["NOME", "", "", "NASCIMENTO", "NATURALIDADE", "SEXO"],
+                [
+                    "ALUNO FILIAÇÃO",
+                    "PAI SEM CABEÇALHO",
+                    "MÃE SEM CABEÇALHO",
+                    "07/08/2015",
+                    "MONTES CLAROS",
+                    "FEMININO",
+                ],
+            ]
+        )
+
+        self.client.post(
+            reverse("historico:importar_lista_alunos"),
+            data={"acao": "previsualizar", "arquivo": arquivo},
+        )
+        self.client.post(
+            reverse("historico:importar_lista_alunos"),
+            data={"acao": "aplicar"},
+        )
+
+        aluno = Aluno.objects.get(nome="ALUNO FILIAÇÃO")
+        self.assertEqual(aluno.pai, "PAI SEM CABEÇALHO")
+        self.assertEqual(aluno.mae, "MÃE SEM CABEÇALHO")
