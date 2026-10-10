@@ -137,6 +137,20 @@
   line-height: 1;
 }
 
+
+.certificate-table .cert-col-1 { width: 16%; }
+.certificate-table .cert-col-2 { width: 6%; }
+.certificate-table .cert-col-3 { width: 4%; }
+.certificate-table .cert-col-4 { width: 6%; }
+.certificate-table .cert-col-5 { width: 6%; }
+.certificate-table .cert-col-6 { width: 5%; }
+.certificate-table .cert-col-7 { width: 7%; }
+.certificate-table .cert-col-8 { width: 12%; }
+.certificate-table .cert-col-9 { width: 7%; }
+.certificate-table .cert-col-10 { width: 6%; }
+.certificate-table .cert-col-11 { width: 5%; }
+.certificate-table .cert-col-12 { width: 20%; }
+
 .certificate-table th,
 .certificate-table td {
   height: 4.34mm;
@@ -152,6 +166,26 @@
   text-align: left;
 }
 
+.certificate-label {
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+.certificate-label--intro {
+  padding-right: 1.2mm !important;
+}
+
+.certificate-label--identity {
+  font-size: 6.15pt;
+  letter-spacing: -.02em;
+}
+
+.certificate-label--sexo {
+  padding-left: .3mm !important;
+  padding-right: .3mm !important;
+  text-align: center !important;
+}
+
 .certificate-table .value {
   position: relative;
   border-bottom: .45pt solid var(--doc-black);
@@ -160,6 +194,13 @@
   text-align: left;
   overflow: hidden;
   text-overflow: clip;
+}
+
+.certificate-table .sex-value {
+  padding-left: .35mm !important;
+  padding-right: .35mm !important;
+  text-align: left;
+  font-size: 7.7pt;
 }
 
 .certificate-table .strong { font-weight: 700; }
