@@ -9,6 +9,7 @@
     {% if request.user.is_staff %}
       <div class="toolbar-actions">
         <a class="btn" href="{% url 'historico:importar_lista_alunos' %}">ATUALIZAR LISTA</a>
+        <a class="btn" href="{% url 'historico:importar_notas_pdf' %}">IMPORTAR NOTAS PDF</a>
         <a class="btn" href="{% url 'historico:dados_extras_anuais' %}">DADOS POR ANO</a>
         <a class="btn" href="{% url 'historico:aluno_novo' %}">CADASTRAR NOVO ALUNO</a>
       </div>
