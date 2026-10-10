@@ -215,3 +215,26 @@ class ConfiguracaoAnoForm(forms.ModelForm):
         if ano < 1900 or ano > 2100:
             raise forms.ValidationError("Informe um ano entre 1900 e 2100.")
         return ano
+
+
+
+class ImportacaoAlunosForm(forms.Form):
+    arquivo = forms.FileField(
+        label="Lista de alunos",
+        help_text="Envie um arquivo .xls ou .xlsx com os dados dos alunos.",
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": ".xls,.xlsx",
+                "class": "file-input",
+            }
+        ),
+    )
+
+    def clean_arquivo(self):
+        arquivo = self.cleaned_data["arquivo"]
+        nome = (arquivo.name or "").lower()
+        if not (nome.endswith(".xls") or nome.endswith(".xlsx")):
+            raise forms.ValidationError("Envie um arquivo no formato .xls ou .xlsx.")
+        if arquivo.size > 15 * 1024 * 1024:
+            raise forms.ValidationError("O arquivo deve ter no máximo 15 MB.")
+        return arquivo
