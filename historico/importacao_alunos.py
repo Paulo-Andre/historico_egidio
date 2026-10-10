@@ -367,39 +367,39 @@ def ler_lista_alunos(caminho):
     }
 
 
+def _adicionar_aos_indices(indices, aluno):
+    indices["por_codigo"][aluno.codigo] = aluno
+
+    cpf = _normalizar_cpf(aluno.cpf)
+    if cpf and aluno not in indices["por_cpf"][cpf]:
+        indices["por_cpf"][cpf].append(aluno)
+
+    matricula = _normalizar_matricula(aluno.matricula)
+    if matricula and aluno not in indices["por_matricula"][matricula]:
+        indices["por_matricula"][matricula].append(aluno)
+
+    nome = _normalizar_texto(aluno.nome)
+    nascimento = _texto_data(aluno.nascimento)
+    if nome:
+        if aluno not in indices["por_nome"][nome]:
+            indices["por_nome"][nome].append(aluno)
+        if nascimento and aluno not in indices["por_nome_nascimento"][(nome, nascimento)]:
+            indices["por_nome_nascimento"][(nome, nascimento)].append(aluno)
+
+
 def _indices_alunos():
-    por_codigo = {}
-    por_cpf = defaultdict(list)
-    por_matricula = defaultdict(list)
-    por_nome_nascimento = defaultdict(list)
-    por_nome = defaultdict(list)
-
-    alunos = list(Aluno.objects.all().order_by("id"))
-    for aluno in alunos:
-        por_codigo[aluno.codigo] = aluno
-
-        cpf = _normalizar_cpf(aluno.cpf)
-        if cpf:
-            por_cpf[cpf].append(aluno)
-
-        matricula = _normalizar_matricula(aluno.matricula)
-        if matricula:
-            por_matricula[matricula].append(aluno)
-
-        nome = _normalizar_texto(aluno.nome)
-        nascimento = _texto_data(aluno.nascimento)
-        if nome:
-            por_nome[nome].append(aluno)
-            if nascimento:
-                por_nome_nascimento[(nome, nascimento)].append(aluno)
-
-    return {
-        "por_codigo": por_codigo,
-        "por_cpf": por_cpf,
-        "por_matricula": por_matricula,
-        "por_nome_nascimento": por_nome_nascimento,
-        "por_nome": por_nome,
+    indices = {
+        "por_codigo": {},
+        "por_cpf": defaultdict(list),
+        "por_matricula": defaultdict(list),
+        "por_nome_nascimento": defaultdict(list),
+        "por_nome": defaultdict(list),
     }
+
+    for aluno in Aluno.objects.all().order_by("id"):
+        _adicionar_aos_indices(indices, aluno)
+
+    return indices
 
 
 def _unico(lista):
@@ -569,9 +569,10 @@ def aplicar_lista(resultado_leitura):
             else:
                 sem_alteracao += 1
 
-        # Atualiza os índices em memória para que outra linha do mesmo arquivo
-        # encontre o aluno recém-criado/atualizado sem gerar duplicidade.
-        indices = _indices_alunos()
+        # Atualiza os índices em memória sem reler todo o banco a cada linha.
+        # Mantemos também as chaves anteriores de um aluno atualizado, o que
+        # ajuda a reconhecer linhas duplicadas do mesmo arquivo.
+        _adicionar_aos_indices(indices, aluno)
 
     return {
         "total": len(resultado_leitura["linhas"]),
