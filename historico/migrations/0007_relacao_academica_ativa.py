@@ -54,9 +54,40 @@ def escolher_relacao_ativa(apps, schema_editor):
             aluno_id=grupo["aluno_id"],
             serie=grupo["serie"],
         ).update(ativo_no_historico=False)
-        Registro.objects.filter(pk=escolhido.pk).update(
-            ativo_no_historico=True
+
+        # Só deixa ativa automaticamente uma relação que tenha algum dado de
+        # aproveitamento. Relações de transferência/saída sem nota permanecem
+        # preservadas, porém inativas, evitando preencher o histórico oficial
+        # com valores vazios.
+        notas_escolhido = (
+            Nota.objects
+            .filter(registro_id=escolhido.id)
+            .exclude(valor__in=["", "-", "*"])
+            .exists()
         )
+        if notas_escolhido:
+            Registro.objects.filter(pk=escolhido.pk).update(
+                ativo_no_historico=True
+            )
+
+    # O mesmo cuidado vale para séries que possuem apenas uma relação: se não
+    # existe nenhuma nota de aproveitamento, ela é mantida no banco, mas fica
+    # fora do histórico oficial até ser ativada manualmente.
+    for registro in Registro.objects.filter(
+        aluno_id__isnull=False,
+        serie__isnull=False,
+        ativo_no_historico=True,
+    ).iterator():
+        possui_nota = (
+            Nota.objects
+            .filter(registro_id=registro.id)
+            .exclude(valor__in=["", "-", "*"])
+            .exists()
+        )
+        if not possui_nota:
+            Registro.objects.filter(pk=registro.pk).update(
+                ativo_no_historico=False
+            )
 
 
 class Migration(migrations.Migration):
