@@ -645,6 +645,11 @@ def _resolver_registro(aluno, item):
         if len(mesma_turma) > 1:
             return None, "Há mais de um registro acadêmico para a mesma turma."
 
+        # Turma diferente representa outra relação acadêmica. Não reutilize
+        # automaticamente o registro anterior, pois isso misturaria notas de
+        # transferências entre turmas.
+        return None, None
+
     if len(registros) == 1:
         return registros[0], None
 
@@ -811,6 +816,35 @@ def aplicar_notas_pdf(resultado):
                         if config and config.matriz_curricular_id
                         else matriz_para_ano(item["ano"])
                     )
+                    ativos_mesma_serie = list(
+                        aluno.registros_academicos
+                        .select_for_update()
+                        .filter(
+                            serie=item["serie"],
+                            ativo_no_historico=True,
+                        )
+                        .prefetch_related("notas")
+                    )
+
+                    ativo_novo = not ativos_mesma_serie
+                    if ativos_mesma_serie:
+                        algum_ativo_com_nota = any(
+                            any(
+                                _texto(nota.valor) not in {"", "-", "*"}
+                                for nota in existente.notas.all()
+                            )
+                            for existente in ativos_mesma_serie
+                        )
+                        if not algum_ativo_com_nota:
+                            ids_ativos = [
+                                existente.id
+                                for existente in ativos_mesma_serie
+                            ]
+                            RegistroAcademico.objects.filter(
+                                id__in=ids_ativos
+                            ).update(ativo_no_historico=False)
+                            ativo_novo = True
+
                     registro = RegistroAcademico.objects.create(
                         aluno=aluno,
                         nome_original=aluno.nome,
@@ -825,6 +859,7 @@ def aplicar_notas_pdf(resultado):
                         ),
                         uf=(config.uf if config else "MG"),
                         matriz_curricular=matriz,
+                        ativo_no_historico=ativo_novo,
                     )
                     registros_criados += 1
                 else:
