@@ -814,3 +814,43 @@
     print-color-adjust: exact !important;
   }
 }
+
+
+.editor-toolbar__actions .emit-form {
+  margin: 0;
+  display: inline-flex;
+}
+
+.official-footer--authenticated .signature-right {
+  right: 15mm;
+  width: 60mm;
+}
+
+.authenticity-badge {
+  position: absolute;
+  right: 1.2mm;
+  bottom: .8mm;
+  width: 12.5mm;
+  display: grid;
+  justify-items: center;
+  gap: .2mm;
+  color: #000;
+  font-size: 3.4pt;
+  line-height: 1;
+  text-align: center;
+}
+
+.authenticity-badge img {
+  display: block;
+  width: 11.2mm;
+  height: 11.2mm;
+}
+
+.authenticity-badge span {
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+.authenticity-badge code {
+  font: 3pt/1 Arial, Helvetica, sans-serif;
+}
