@@ -6,10 +6,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{% block title %}Histórico Escolar{% endblock %}</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="{% static 'historico/css/app.css' %}">
   {% block extra_head %}{% endblock %}
 </head>
@@ -20,14 +16,17 @@
     <span>Histórico Escolar</span>
   </div>
   <nav>
-    <a href="{% url 'historico:inicio' %}">Início</a>
-    {% if request.user.is_staff %}
+    {% if request.user.is_authenticated and request.user.is_staff %}
+      <a href="{% url 'historico:inicio' %}">Dashboard</a>
       <a href="{% url 'historico:aluno_novo' %}">Novo aluno</a>
       <a href="{% url 'historico:importar_lista_alunos' %}">Atualizar lista</a>
       <a href="{% url 'historico:importar_notas_pdf' %}">Importar notas PDF</a>
       <a href="{% url 'historico:dados_extras_anuais' %}">Dados por ano</a>
+      <a href="/admin/">Administração</a>
+      <span class="nav-user">{{ request.user.username }}</span>
+    {% else %}
+      <a href="/admin/login/?next=/">Acesso interno</a>
     {% endif %}
-    <a href="/admin/">Administração</a>
   </nav>
 </header>
 
