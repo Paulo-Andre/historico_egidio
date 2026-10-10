@@ -4,7 +4,7 @@
 {% block title %}Histórico Escolar — {{ aluno.nome }}{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'historico/css/document.css' %}?v=20261010-03">
+<link rel="stylesheet" href="{% static 'historico/css/document.css' %}?v=20261010-04">
 {% endblock %}
 
 {% block content %}
@@ -48,9 +48,23 @@
       <section class="certificate-section">
         <h1>CERTIFICADO DE CONCLUSÃO</h1>
         <table class="certificate-table">
+          <colgroup>
+            <col class="cert-col-1">
+            <col class="cert-col-2">
+            <col class="cert-col-3">
+            <col class="cert-col-4">
+            <col class="cert-col-5">
+            <col class="cert-col-6">
+            <col class="cert-col-7">
+            <col class="cert-col-8">
+            <col class="cert-col-9">
+            <col class="cert-col-10">
+            <col class="cert-col-11">
+            <col class="cert-col-12">
+          </colgroup>
           <tbody>
             <tr>
-              <th>Certificamos que</th>
+              <th class="certificate-label certificate-label--intro">Certificamos que</th>
               <td colspan="11" class="value strong uppercase"
                   contenteditable="{{ can_edit|yesno:'true,false' }}"
                   data-model="aluno" data-field="nome">{{ aluno.nome }}</td>
@@ -68,8 +82,8 @@
               <td colspan="2" class="value uppercase"
                   contenteditable="{{ can_edit|yesno:'true,false' }}"
                   data-model="aluno" data-field="nacionalidade">{{ aluno.nacionalidade }}</td>
-              <th>Sexo</th>
-              <td class="value uppercase"
+              <th class="certificate-label certificate-label--sexo">Sexo</th>
+              <td class="value uppercase sex-value"
                   contenteditable="{{ can_edit|yesno:'true,false' }}"
                   data-model="aluno" data-field="sexo">{{ aluno.sexo }}</td>
             </tr>
@@ -90,7 +104,7 @@
               <td colspan="6" class="value uppercase"
                   contenteditable="{{ can_edit|yesno:'true,false' }}"
                   data-model="aluno" data-field="mae">{{ aluno.mae }}</td>
-              <th>Carteira de Identidade nº</th>
+              <th class="certificate-label certificate-label--identity">Carteira de Identidade nº</th>
               <td colspan="4" class="value uppercase"
                   contenteditable="{{ can_edit|yesno:'true,false' }}"
                   data-model="aluno" data-field="identidade">{{ aluno.identidade }}</td>
