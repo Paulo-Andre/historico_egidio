@@ -73,7 +73,7 @@
   position: relative;
   width: 210mm;
   height: 297mm;
-  padding: 4mm;
+  padding: 3.8mm 0 0 3.8mm;
   margin: 2rem auto;
   overflow: visible;
   background: var(--doc-paper);
@@ -86,8 +86,8 @@
 }
 
 .official-page-border {
-  width: 100%;
-  height: 289mm;
+  width: 198.9mm;
+  height: 283.6mm;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -98,51 +98,52 @@
 .official-letterhead {
   flex: 0 0 17mm;
   height: 17mm;
-  padding: 1.2mm 1.5mm .7mm;
-  border-bottom: .55pt solid var(--doc-black);
+  padding: 2.75mm 1.5mm .25mm;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-start;
 }
 
 .official-letterhead img {
   display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  width: 195.3mm;
+  height: 14mm;
+  object-fit: fill;
 }
 
 .certificate-section {
-  flex: 0 0 29mm;
-  height: 29mm;
+  flex: 0 0 29.45mm;
+  width: 196.8mm;
+  height: 29.45mm;
+  margin-left: .9mm;
   overflow: hidden;
-  border-bottom: .55pt solid var(--doc-black);
+  border: .55pt solid var(--doc-black);
 }
 
 .certificate-section h1 {
-  height: 5.2mm;
+  height: 6.55mm;
   margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   border-bottom: .45pt solid var(--doc-black);
-  font: 700 7.8pt/1 Arial, Helvetica, sans-serif;
+  font: 700 10.55pt/1 Arial, Helvetica, sans-serif;
   letter-spacing: .01em;
 }
 
 .certificate-table {
   width: 100%;
-  height: 23.7mm;
+  height: 22.9mm;
   border-collapse: collapse;
   table-layout: fixed;
-  font-size: 4.8pt;
-  line-height: 1.02;
+  font-size: 6.95pt;
+  line-height: 1;
 }
 
 .certificate-table th,
 .certificate-table td {
-  height: 4.65mm;
-  padding: .45mm .7mm;
+  height: 4.58mm;
+  padding: .25mm .55mm;
   border: 0;
   vertical-align: middle;
   white-space: nowrap;
@@ -157,7 +158,8 @@
 .certificate-table .value {
   position: relative;
   border-bottom: .45pt solid var(--doc-black);
-  font-weight: 600;
+  font-size: 8pt;
+  font-weight: 700;
   text-align: left;
   overflow: hidden;
   text-overflow: clip;
@@ -167,36 +169,40 @@
 .certificate-table .center { text-align: center; }
 .certificate-table .plain-cell {
   padding-left: .3mm;
-  font-size: 4.6pt;
+  font-size: 6.95pt;
   white-space: nowrap;
 }
 
 .uppercase { text-transform: uppercase; }
 
 .history-title {
-  flex: 0 0 10mm;
-  height: 10mm;
+  flex: 0 0 9.3mm;
+  width: 196.8mm;
+  height: 9.3mm;
+  margin: 2.1mm 0 2.5mm .9mm;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   border-bottom: .65pt solid var(--doc-black);
-  font-size: 7.2pt;
+  font-size: 9.95pt;
   line-height: 1.35;
   text-align: center;
 }
 
 .history-title strong {
-  font-size: 7.6pt;
+  font-size: 9.95pt;
 }
 
 .history-frame {
-  flex: 0 0 181mm;
-  height: 181mm;
+  flex: 0 0 183.3mm;
+  width: 196.8mm;
+  height: 183.3mm;
+  margin-left: .9mm;
   min-height: 0;
   display: grid;
-  grid-template-columns: 65.5% 34.5%;
-  border-bottom: .65pt solid var(--doc-black);
+  grid-template-columns: 132.21mm 64.59mm;
+  border: .65pt solid var(--doc-black);
 }
 
 .history-left {
@@ -206,21 +212,29 @@
 }
 
 .official-history-table {
-  width: 100%;
+  width: 132.21mm;
   height: 100%;
   table-layout: fixed;
   border-collapse: collapse;
-  font-size: 4.45pt;
+  font-size: 6pt;
   line-height: 1.02;
   font-variant-numeric: tabular-nums;
 }
 
-.official-history-table .c-etapa { width: 4.7%; }
-.official-history-table .c-ano { width: 9.4%; }
-.official-history-table .c-rotulo { width: 20.1%; }
-.official-history-table .c-disc { width: 5.55%; }
-.official-history-table .c-total { width: 8.0%; }
-.official-history-table .c-status { width: 7.85%; }
+.official-history-table .c-etapa { width: 6.223mm; }
+.official-history-table .c-ano { width: 8.001mm; }
+.official-history-table .c-rotulo { width: 25.781mm; }
+.official-history-table .c-portugues { width: 9.186mm; }
+.official-history-table .c-arte { width: 7.112mm; }
+.official-history-table .c-edfisica { width: 8.594mm; }
+.official-history-table .c-ingles { width: 8.594mm; }
+.official-history-table .c-matematica { width: 9.779mm; }
+.official-history-table .c-ciencias { width: 8.594mm; }
+.official-history-table .c-geografia { width: 8.89mm; }
+.official-history-table .c-historia { width: 8.594mm; }
+.official-history-table .c-religioso { width: 8.594mm; }
+.official-history-table .c-total { width: 8.594mm; }
+.official-history-table .c-status { width: 5.673mm; }
 
 .official-history-table th,
 .official-history-table td {
@@ -240,11 +254,11 @@
 }
 
 .official-history-table thead .knowledge-row {
-  height: 17mm;
+  height: 17.6mm;
 }
 
 .official-history-table thead .subjects-row {
-  height: 25mm;
+  height: 20.4mm;
 }
 
 .official-history-table thead th {
@@ -253,7 +267,7 @@
 
 .official-history-table thead .knowledge-row > th:first-child,
 .official-history-table thead .subjects-row > th:first-child {
-  font-size: 4.5pt;
+  font-size: 6.95pt;
   font-weight: 500;
 }
 
@@ -268,19 +282,19 @@
 }
 
 .vertical-category {
-  font-size: 4.2pt;
+  font-size: 6.95pt;
   font-weight: 600 !important;
   letter-spacing: .01em;
 }
 
 .vertical-subject {
-  padding: .6mm .2mm !important;
-  font-size: 4.1pt;
+  padding: .45mm .15mm !important;
+  font-size: 6.95pt;
   font-weight: 500 !important;
 }
 
 .official-history-table tbody tr {
-  height: 5.52mm;
+  height: 5.8mm;
 }
 
 .official-history-table tbody tr.year-group-start:not(:first-child) > * {
@@ -288,28 +302,28 @@
 }
 
 .stage-cell {
-  padding: .5mm .2mm !important;
-  font-size: 5.2pt;
+  padding: .4mm .15mm !important;
+  font-size: 8pt;
   font-weight: 500;
   letter-spacing: .02em;
 }
 
 .year-cell {
-  padding: .5mm .15mm !important;
-  font-size: 4.9pt;
+  padding: .4mm .12mm !important;
+  font-size: 8pt;
   font-weight: 500;
 }
 
 .row-label {
-  padding-left: .7mm !important;
-  font-size: 4.35pt;
+  padding-left: .55mm !important;
+  font-size: 6pt;
   font-weight: 500;
   text-align: left !important;
   white-space: nowrap;
 }
 
 .grade-cell {
-  font-size: 4.75pt;
+  font-size: 6.45pt;
   font-weight: 500;
 }
 
@@ -318,7 +332,7 @@
 .municipality-cell,
 .meta-value,
 .inline-label {
-  font-size: 4.25pt;
+  font-size: 6pt;
 }
 
 .merged-value {
@@ -344,8 +358,8 @@
 
 .total-cell,
 .status-cell {
-  padding: .3mm .15mm !important;
-  font-size: 4.65pt;
+  padding: .25mm .1mm !important;
+  font-size: 6pt;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -354,21 +368,21 @@
   min-width: 0;
   height: 100%;
   overflow: hidden;
-  padding: 1.4mm 1.7mm .9mm;
-  font-size: 4.25pt;
-  line-height: 1.13;
+  padding: 1.4mm .8mm .7mm;
+  font-size: 6pt;
+  line-height: 1.15;
   text-align: center;
 }
 
 .legal-column h3 {
   margin: 0 0 1.2mm;
-  font-size: 4.55pt;
+  font-size: 6pt;
   font-weight: 700;
   text-align: left;
 }
 
 .legal-column p {
-  margin: 0 0 1.15mm;
+  margin: 0 0 .85mm;
   text-align: center;
 }
 
@@ -378,17 +392,19 @@
 
 .legal-divider {
   margin: .3mm 0 .7mm;
-  font-size: 4pt;
+  font-size: 6pt;
   letter-spacing: -.02em;
 }
 
 .bottom-observation {
-  flex: 0 0 18mm;
-  height: 18mm;
+  flex: 0 0 18.25mm;
+  width: 196.8mm;
+  height: 18.25mm;
+  margin-left: .9mm;
   display: grid;
   grid-template-columns: 23mm 1fr;
   border-bottom: .55pt solid var(--doc-black);
-  font-size: 4.8pt;
+  font-size: 6.95pt;
 }
 
 .bottom-observation__label {
@@ -399,8 +415,8 @@
 .bottom-observation__text {
   padding: 1.4mm 1mm;
   overflow: hidden;
-  font-size: 4.65pt;
-  font-weight: 600;
+  font-size: 6.95pt;
+  font-weight: 700;
   line-height: 1.22;
   white-space: pre-wrap;
   text-transform: uppercase;
@@ -408,15 +424,17 @@
 
 .official-footer {
   position: relative;
-  flex: 1 1 auto;
-  min-height: 32mm;
-  padding: 16mm 7mm 2mm;
-  font-size: 3.8pt;
+  flex: 0 0 21.3mm;
+  width: 198.9mm;
+  height: 21.3mm;
+  min-height: 21.3mm;
+  padding: 0;
+  font-size: 6pt;
 }
 
 .signature {
   position: absolute;
-  bottom: 10mm;
+  bottom: 9.1mm;
   width: 70mm;
   text-align: center;
   white-space: nowrap;
@@ -444,16 +462,23 @@
 
 .issue-date strong {
   display: block;
-  padding-top: .9mm;
+  padding-top: .55mm;
   border-top: .55pt solid var(--doc-black);
-  font-size: 5.3pt;
+  font-size: 8pt;
   line-height: 1.15;
 }
 
-.issue-date span {
+.issue-date strong > span {
+  display: inline;
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.issue-date__caption {
   display: block;
-  margin-top: .6mm;
-  font-size: 3.7pt;
+  margin-top: .35mm;
+  font-size: 6pt;
   font-weight: 600;
 }
 
@@ -551,7 +576,7 @@
     height: 297mm !important;
     min-height: 297mm !important;
     margin: 0 !important;
-    padding: 4mm !important;
+    padding: 3.8mm 0 0 3.8mm !important;
     overflow: hidden !important;
     border-radius: 0 !important;
     box-shadow: none !important;
