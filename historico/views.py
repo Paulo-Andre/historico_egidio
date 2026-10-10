@@ -516,7 +516,20 @@ def dados_extras_anuais(request):
     if request.method == "POST":
         formset = FormSet(request.POST, queryset=queryset, prefix="anos")
         if formset.is_valid():
-            formset.save()
+            objetos = formset.save()
+            registrar_auditoria(
+                request,
+                "ALUNO_ALTERADO",
+                entidade="ConfiguracaoAno",
+                objeto_id="lote",
+                objeto_repr="Configurações anuais",
+                detalhes={
+                    "quantidade_alterada": len(objetos),
+                    "anos": sorted(
+                        [obj.ano for obj in objetos if getattr(obj, "ano", None)]
+                    ),
+                },
+            )
             return redirect(
                 f'{reverse("historico:dados_extras_anuais")}?salvo=1'
             )
