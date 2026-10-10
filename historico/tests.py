@@ -94,6 +94,7 @@ class HistoricoEditorJsonTests(TestCase):
                         "resultado": "REPROVADO",
                         "frequencia": "74%",
                         "carga_horaria": "800",
+                        "professor_responsavel": "Professora Ana",
                     },
                     "notas": {
                         "matematica": {
@@ -123,6 +124,10 @@ class HistoricoEditorJsonTests(TestCase):
         self.assertEqual(self.aluno.identidade, "MG-22.487.354")
         self.assertEqual(self.registro.resultado, "REPROVADO")
         self.assertEqual(self.registro.frequencia, "74%")
+        self.assertEqual(
+            self.registro.professor_responsavel,
+            "Professora Ana",
+        )
         self.assertEqual(nota.valor, "55")
 
 
@@ -871,6 +876,110 @@ class ImportacaoNotasPdfPreservacaoHistoricoTests(TestCase):
             5,
         )
 
+
+
+class RelatorioCompletoAlunoTests(TestCase):
+    def setUp(self):
+        self.aluno = Aluno.objects.create(
+            codigo=870,
+            nome="ALUNA RELATORIO COMPLETO",
+            matricula="2026-870",
+            cpf="111.222.333-44",
+            identidade="MG-123456",
+            orgao_expedidor="PC/MG",
+            curso="ENSINO FUNDAMENTAL",
+            nascimento="14/03/2015",
+            naturalidade="MONTES CLAROS",
+            uf="MG",
+            nacionalidade="BRASILEIRA",
+            sexo="FEMININO",
+            pai="PAI TESTE",
+            mae="MAE TESTE",
+            data_conclusao="31/12/2099",
+            data_expedicao="10/10/2026",
+            observacao_historico="Observação geral da aluna.",
+        )
+        ConfiguracaoAno.objects.create(
+            ano=2025,
+            ch_anual="800",
+            dias_letivos="200",
+            media_minima="60",
+            escola="E. M. EGÍDIO CORDEIRO AQUINO",
+            municipio="MONTES CLAROS",
+            uf="MG",
+        )
+        self.ativa = RegistroAcademico.objects.create(
+            aluno=self.aluno,
+            nome_original=self.aluno.nome,
+            ano=2025,
+            serie=5,
+            turma="5º ANO VERMELHO",
+            professor_responsavel="Professora Maria",
+            frequencia="96%",
+            resultado="APROVADO",
+            ativo_no_historico=True,
+        )
+        Nota.objects.create(
+            registro=self.ativa,
+            componente=Nota.MATEMATICA,
+            valor="92",
+        )
+        self.inativa = RegistroAcademico.objects.create(
+            aluno=self.aluno,
+            nome_original=self.aluno.nome,
+            ano=2025,
+            serie=4,
+            turma="4º ANO AZUL",
+            professor_responsavel="Professor João",
+            resultado="TRANSFERIDO",
+            ativo_no_historico=False,
+        )
+        Nota.objects.create(
+            registro=self.inativa,
+            componente=Nota.HISTORIA,
+            valor="81",
+        )
+
+    def test_relatorio_exibe_dados_vida_escolar_professores_e_notas(self):
+        response = self.client.get(
+            reverse("historico:relatorio_aluno", args=[self.aluno.codigo])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Relatório Completo do Aluno")
+        self.assertContains(response, "ALUNA RELATORIO COMPLETO")
+        self.assertContains(response, "111.222.333-44")
+        self.assertContains(response, "5º ANO VERMELHO")
+        self.assertContains(response, "4º ANO AZUL")
+        self.assertContains(response, "Professora Maria")
+        self.assertContains(response, "Professor João")
+        self.assertContains(response, "92")
+        self.assertContains(response, "81")
+        self.assertContains(response, "Ativa no histórico")
+        self.assertContains(response, "Inativa / preservada")
+
+    def test_relatorio_nao_exibe_data_de_conclusao(self):
+        response = self.client.get(
+            reverse("historico:relatorio_aluno", args=[self.aluno.codigo])
+        )
+
+        self.assertNotContains(response, "31/12/2099")
+
+    def test_central_de_relatorios_localiza_aluno(self):
+        response = self.client.get(
+            reverse("historico:relatorios"),
+            {"q": "RELATORIO COMPLETO"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.aluno.nome)
+        self.assertContains(
+            response,
+            reverse(
+                "historico:relatorio_aluno",
+                args=[self.aluno.codigo],
+            ),
+        )
 
 
 class RelacoesAcademicasAtivasTests(TestCase):
