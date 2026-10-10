@@ -259,3 +259,52 @@ def painel_geral():
         "registros_sem_matriz": registros_sem_matriz,
         "documentos_recentes": documentos_recentes,
     }
+
+
+
+def relatorio_integridade(limite=50):
+    alunos_incompletos = list(
+        Aluno.objects.filter(
+            Q(nome="")
+            | Q(nascimento="")
+            | Q(naturalidade="")
+            | Q(mae="")
+        )
+        .order_by("nome")[:limite]
+    )
+
+    registros_sem_notas = list(
+        RegistroAcademico.objects
+        .select_related("aluno")
+        .annotate(qtd=Count("notas"))
+        .filter(qtd=0)
+        .order_by("-ano", "aluno__nome")[:limite]
+    )
+
+    registros_sem_matriz = list(
+        RegistroAcademico.objects
+        .select_related("aluno")
+        .filter(matriz_curricular__isnull=True)
+        .order_by("-ano", "aluno__nome")[:limite]
+    )
+
+    nomes_duplicados = list(
+        Aluno.objects
+        .values("nome")
+        .annotate(qtd=Count("id"))
+        .filter(qtd__gt=1)
+        .order_by("-qtd", "nome")[:limite]
+    )
+
+    return {
+        "alunos_incompletos": alunos_incompletos,
+        "registros_sem_notas": registros_sem_notas,
+        "registros_sem_matriz": registros_sem_matriz,
+        "nomes_duplicados": nomes_duplicados,
+        "totais": {
+            "alunos_incompletos": len(alunos_incompletos),
+            "registros_sem_notas": len(registros_sem_notas),
+            "registros_sem_matriz": len(registros_sem_matriz),
+            "nomes_duplicados": len(nomes_duplicados),
+        },
+    }
