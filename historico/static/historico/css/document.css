@@ -242,6 +242,7 @@
 }
 
 .history-left {
+  position: relative;
   min-width: 0;
   min-height: 0;
   border-right: .65pt solid var(--doc-black);
@@ -356,6 +357,21 @@
 
 .official-history-table tbody tr.year-group-start:not(:first-child) > * {
   border-top: .55pt solid var(--doc-black);
+}
+
+
+.missing-year-diagonal {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.missing-year-diagonal line {
+  stroke: var(--doc-black);
+  stroke-width: .7;
+  vector-effect: non-scaling-stroke;
+  shape-rendering: geometricPrecision;
 }
 
 .stage-cell {
