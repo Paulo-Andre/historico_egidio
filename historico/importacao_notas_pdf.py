@@ -1,3 +1,4 @@
+import logging
 import re
 import unicodedata
 from collections import defaultdict
@@ -8,6 +9,8 @@ from django.db.models import Max
 
 from .models import Aluno, ConfiguracaoAno, Nota, RegistroAcademico
 
+
+logger = logging.getLogger(__name__)
 
 MAX_PAGINAS = 250
 MAX_ITENS = 15000
@@ -746,7 +749,6 @@ def _novo_codigo():
     return (Aluno.objects.aggregate(maximo=Max("codigo"))["maximo"] or 0) + 1
 
 
-@transaction.atomic
 def aplicar_notas_pdf(resultado):
     indice = _indice_alunos()
     proximo_codigo = _novo_codigo()
@@ -758,105 +760,147 @@ def aplicar_notas_pdf(resultado):
     notas_adicionadas = 0
     notas_preservadas = 0
     conflitos = []
+    processados = 0
 
     for item in resultado["itens"]:
-        # A ATA usa o nome do estudante como chave de associação.
-        # O cadastro do aluno nunca é alterado por esta importação.
-        aluno, erro = _resolver_aluno(item["nome"], indice)
-        if erro:
+        try:
+            # Cada aluno/ano é confirmado em uma transação curta. Assim um
+            # registro problemático não desfaz os demais e reduz o tempo em
+            # que o SQLite permanece bloqueado para escrita.
+            with transaction.atomic():
+                aluno, erro = _resolver_aluno(item["nome"], indice)
+                if erro:
+                    conflitos.append(
+                        {
+                            "nome": item["nome"],
+                            "ano": item["ano"],
+                            "serie": item["serie"],
+                            "erro": erro,
+                        }
+                    )
+                    continue
+
+                criou_aluno = False
+                if aluno is None:
+                    while Aluno.objects.filter(codigo=proximo_codigo).exists():
+                        proximo_codigo += 1
+                    aluno = Aluno.objects.create(
+                        codigo=proximo_codigo,
+                        nome=_texto(item["nome"])[:255],
+                        curso="ENSINO FUNDAMENTAL",
+                        ativo=True,
+                    )
+                    proximo_codigo += 1
+                    criou_aluno = True
+                else:
+                    alunos_localizados += 1
+
+                registro, erro_registro = _resolver_registro(aluno, item)
+                if erro_registro:
+                    # Se o aluno acabou de ser criado nesta mesma transação,
+                    # o rollback evita deixar cadastro incompleto.
+                    raise ErroImportacaoNotasPdf(erro_registro)
+
+                if registro is None:
+                    config = ConfiguracaoAno.objects.filter(
+                        ano=item["ano"]
+                    ).first()
+                    registro = RegistroAcademico.objects.create(
+                        aluno=aluno,
+                        nome_original=aluno.nome,
+                        ano=item["ano"],
+                        serie=item["serie"],
+                        turma=_texto(item.get("turma"))[:120],
+                        resultado=_texto(item.get("resultado"))[:80],
+                        carga_horaria=(config.ch_anual if config else ""),
+                        escola=(config.escola if config else ""),
+                        municipio=(
+                            config.municipio if config else "MONTES CLAROS"
+                        ),
+                        uf=(config.uf if config else "MG"),
+                    )
+                    registros_criados += 1
+                else:
+                    # Modo aditivo: nunca substitui informação preenchida.
+                    # Apenas completa campos vazios do mesmo aluno + ano + série.
+                    alterados = []
+                    turma = _texto(item.get("turma"))[:120]
+                    resultado_item = _texto(item.get("resultado"))[:80]
+
+                    if not registro.turma and turma:
+                        registro.turma = turma
+                        alterados.append("turma")
+                    if not registro.resultado and resultado_item:
+                        registro.resultado = resultado_item
+                        alterados.append("resultado")
+                    if not registro.nome_original:
+                        registro.nome_original = aluno.nome
+                        alterados.append("nome_original")
+
+                    if alterados:
+                        registro.save(update_fields=alterados)
+                    registros_existentes += 1
+
+                for componente, valor in item["notas"].items():
+                    valor = _texto(valor)
+                    if not valor:
+                        continue
+
+                    _, criada = Nota.objects.get_or_create(
+                        registro=registro,
+                        componente=componente,
+                        defaults={"valor": valor[:40]},
+                    )
+                    if criada:
+                        notas_adicionadas += 1
+                    else:
+                        # Regra append-only: mantém a nota já existente.
+                        notas_preservadas += 1
+
+                if criou_aluno:
+                    indice[_normalizar_nome(aluno.nome)].append(aluno)
+                    alunos_criados += 1
+
+                processados += 1
+
+        except ErroImportacaoNotasPdf as exc:
             conflitos.append(
                 {
-                    "nome": item["nome"],
-                    "ano": item["ano"],
-                    "serie": item["serie"],
-                    "erro": erro,
+                    "nome": item.get("nome", ""),
+                    "ano": item.get("ano", ""),
+                    "serie": item.get("serie", ""),
+                    "erro": str(exc),
                 }
             )
-            continue
-
-        if aluno is None:
-            while Aluno.objects.filter(codigo=proximo_codigo).exists():
-                proximo_codigo += 1
-            aluno = Aluno.objects.create(
-                codigo=proximo_codigo,
-                nome=_texto(item["nome"])[:255],
-                curso="ENSINO FUNDAMENTAL",
-                ativo=True,
+        except Exception as exc:
+            logger.exception(
+                "Falha ao importar ATA PDF para aluno=%r ano=%r serie=%r",
+                item.get("nome"),
+                item.get("ano"),
+                item.get("serie"),
             )
-            proximo_codigo += 1
-            indice[_normalizar_nome(aluno.nome)].append(aluno)
-            alunos_criados += 1
-        else:
-            alunos_localizados += 1
-
-        registro, erro_registro = _resolver_registro(aluno, item)
-        if erro_registro:
             conflitos.append(
                 {
-                    "nome": item["nome"],
-                    "ano": item["ano"],
-                    "serie": item["serie"],
-                    "erro": erro_registro,
+                    "nome": item.get("nome", ""),
+                    "ano": item.get("ano", ""),
+                    "serie": item.get("serie", ""),
+                    "erro": (
+                        "Erro técnico neste registro. "
+                        f"Tipo: {exc.__class__.__name__}."
+                    ),
                 }
             )
-            continue
 
-        if registro is None:
-            config = ConfiguracaoAno.objects.filter(ano=item["ano"]).first()
-            registro = RegistroAcademico.objects.create(
-                aluno=aluno,
-                nome_original=aluno.nome,
-                ano=item["ano"],
-                serie=item["serie"],
-                turma=_texto(item.get("turma"))[:120],
-                resultado=_texto(item.get("resultado"))[:80],
-                carga_horaria=(config.ch_anual if config else ""),
-                escola=(config.escola if config else ""),
-                municipio=(config.municipio if config else "MONTES CLAROS"),
-                uf=(config.uf if config else "MG"),
-            )
-            registros_criados += 1
-        else:
-            # Modo aditivo: nunca substitui informação preenchida. Apenas
-            # completa campos vazios do mesmo aluno + ano + série.
-            alterados = []
-            turma = _texto(item.get("turma"))[:120]
-            resultado_item = _texto(item.get("resultado"))[:80]
-
-            if not registro.turma and turma:
-                registro.turma = turma
-                alterados.append("turma")
-            if not registro.resultado and resultado_item:
-                registro.resultado = resultado_item
-                alterados.append("resultado")
-            if not registro.nome_original:
-                registro.nome_original = aluno.nome
-                alterados.append("nome_original")
-
-            if alterados:
-                registro.save(update_fields=alterados)
-            registros_existentes += 1
-
-        for componente, valor in item["notas"].items():
-            valor = _texto(valor)
-            if not valor:
-                continue
-
-            _, criada = Nota.objects.get_or_create(
-                registro=registro,
-                componente=componente,
-                defaults={"valor": valor[:40]},
-            )
-            if criada:
-                notas_adicionadas += 1
-            else:
-                # Regra append-only: se a nota já existe para este
-                # aluno + ano + série + disciplina, mantém exatamente
-                # o valor que já estava no banco.
-                notas_preservadas += 1
+    if processados == 0 and conflitos:
+        primeiro = conflitos[0]["erro"]
+        raise ErroImportacaoNotasPdf(
+            "Nenhum registro pôde ser gravado. "
+            f"Primeiro problema encontrado: {primeiro}"
+        )
 
     return {
         "total": len(resultado["itens"]),
+        "processados": processados,
         "alunos_criados": alunos_criados,
         "alunos_localizados": alunos_localizados,
         "registros_criados": registros_criados,
