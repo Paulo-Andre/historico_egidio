@@ -19,6 +19,11 @@ urlpatterns = [
         name="importar_lista_alunos",
     ),
     path(
+        "notas/importar-pdf/",
+        views.importar_notas_pdf,
+        name="importar_notas_pdf",
+    ),
+    path(
         "aluno/<int:codigo>/editar/",
         views.gerenciar_aluno,
         name="aluno_editar",
