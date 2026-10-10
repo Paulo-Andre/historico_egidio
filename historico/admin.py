@@ -68,6 +68,7 @@ class AlunoAdmin(admin.ModelAdmin):
             "fields": (
                 "curso",
                 "data_conclusao",
+                "serie_conclusao",
                 "data_expedicao",
                 "observacao_historico",
             )
