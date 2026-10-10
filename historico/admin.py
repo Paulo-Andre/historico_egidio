@@ -74,6 +74,17 @@ class AlunoAdmin(admin.ModelAdmin):
         }),
     )
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        registrar_auditoria(
+            request,
+            "ALUNO_ALTERADO" if change else "ALUNO_CRIADO",
+            entidade="Aluno",
+            objeto_id=obj.codigo,
+            objeto_repr=obj.nome,
+            detalhes={"campos_alterados": sorted(form.changed_data)},
+        )
+
 
 @admin.register(ConfiguracaoAno)
 class ConfiguracaoAnoAdmin(admin.ModelAdmin):
@@ -87,6 +98,17 @@ class ConfiguracaoAnoAdmin(admin.ModelAdmin):
     )
     ordering = ("ano",)
     autocomplete_fields = ("matriz_curricular",)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        registrar_auditoria(
+            request,
+            "REQUEST_SENSIVEL",
+            entidade="ConfiguracaoAno",
+            objeto_id=obj.ano,
+            objeto_repr=str(obj),
+            detalhes={"campos_alterados": sorted(form.changed_data)},
+        )
 
 
 @admin.register(RegistroAcademico)
@@ -106,6 +128,20 @@ class RegistroAcademicoAdmin(admin.ModelAdmin):
     search_fields = ("aluno__nome", "nome_original", "turma")
     autocomplete_fields = ("aluno", "matriz_curricular")
     inlines = [NotaInline]
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        registrar_auditoria(
+            request,
+            "REQUEST_SENSIVEL",
+            entidade="RegistroAcademico",
+            objeto_id=obj.pk,
+            objeto_repr=str(obj),
+            detalhes={
+                "aluno_codigo": obj.aluno.codigo if obj.aluno_id else None,
+                "campos_alterados": sorted(form.changed_data),
+            },
+        )
 
 
 @admin.register(Nota)
