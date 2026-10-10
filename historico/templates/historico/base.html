@@ -21,6 +21,9 @@
   </div>
   <nav>
     <a href="{% url 'historico:inicio' %}">Início</a>
+    {% if request.user.is_staff %}
+      <a href="{% url 'historico:aluno_novo' %}">Novo aluno</a>
+    {% endif %}
     <a href="/admin/">Administração</a>
   </nav>
 </header>
