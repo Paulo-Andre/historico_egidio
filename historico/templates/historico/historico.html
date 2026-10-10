@@ -169,10 +169,8 @@
                 <td class="grade-cell" {% if can_edit and h.registro %}contenteditable="true"{% endif %} data-role="nota" data-nota="geografia">{{ h.notas.geografia }}</td>
                 <td class="grade-cell" {% if can_edit and h.registro %}contenteditable="true"{% endif %} data-role="nota" data-nota="historia">{{ h.notas.historia }}</td>
                 <td class="grade-cell" {% if can_edit and h.registro %}contenteditable="true"{% endif %} data-role="nota" data-nota="educacao_religiosa">{{ h.notas.educacao_religiosa }}</td>
-                <td rowspan="5" class="total-cell"
-                    {% if can_edit and h.registro %}contenteditable="true"{% endif %}
-                    {% if h.registro %}data-model="registro" data-field="carga_horaria" data-role="carga-horaria-total"{% endif %}>{{ h.carga_horaria }}</td>
-                <td rowspan="5" class="status-cell"
+                <td class="total-spacer"></td>
+                <td rowspan="3" class="status-cell"
                     {% if can_edit and h.registro %}contenteditable="true"{% endif %}
                     {% if h.registro %}data-model="registro" data-field="resultado"{% endif %}>{{ h.situacao }}</td>
               </tr>
@@ -182,20 +180,23 @@
                 <td colspan="9" class="merged-value"
                     {% if can_edit and h.registro %}contenteditable="true"{% endif %}
                     {% if h.registro %}data-model="registro" data-field="carga_horaria" data-role="carga-horaria-main"{% endif %}>{{ h.carga_horaria }}</td>
+                <td class="total-cell"
+                    {% if can_edit and h.registro %}contenteditable="true"{% endif %}
+                    {% if h.registro %}data-model="registro" data-field="carga_horaria" data-role="carga-horaria-total"{% endif %}>{{ h.carga_horaria }}</td>
               </tr>
 
               <tr {% if h.registro %}data-registro-id="{{ h.registro.id }}"{% endif %}>
                 <th class="row-label">FALTAS (HORAS)</th>
-                <td colspan="9" class="merged-value">{{ h.faltas_horas }}</td>
+                <td colspan="10" class="merged-value">{{ h.faltas_horas }}</td>
               </tr>
 
               <tr {% if h.registro %}data-registro-id="{{ h.registro.id }}"{% endif %}>
                 <th class="row-label">ESTABELECIMENTO:</th>
-                <td colspan="5" class="school-cell uppercase"
+                <td colspan="6" class="school-cell uppercase"
                     {% if can_edit and h.registro %}contenteditable="true"{% endif %}
                     {% if h.registro %}data-model="registro" data-field="escola"{% endif %}>{{ h.escola }}</td>
-                <th colspan="2" class="inline-label">MUNICÍPIO/ESTADO:</th>
-                <td colspan="2" class="municipality-cell uppercase">
+                <td colspan="5" class="municipality-combined uppercase">
+                  <span class="municipality-label">MUNICÍPIO/ESTADO:</span>
                   {% if h.registro %}
                     <span contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="registro" data-field="municipio">{{ h.municipio }}</span>{% if h.uf %}/<span contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="registro" data-field="uf">{{ h.uf }}</span>{% endif %}
                   {% else %}
@@ -207,10 +208,10 @@
               <tr {% if h.registro %}data-registro-id="{{ h.registro.id }}"{% endif %}>
                 <th class="row-label">DIAS LETIVOS ANUAIS:</th>
                 <td class="meta-value">{{ h.dias_letivos }}</td>
-                <th colspan="3" class="inline-label">MÍNIMO PARA PROMOÇÃO:</th>
+                <th colspan="4" class="annual-label annual-label--left">MÍNIMO PARA PROMOÇÃO:</th>
                 <td class="meta-value">{{ h.media_minima }}</td>
-                <th colspan="3" class="inline-label">CARGA HORÁRIA ANUAL:</th>
-                <td class="meta-value">{{ h.carga_horaria }}</td>
+                <th colspan="3" class="annual-label">CARGA HORÁRIA ANUAL:</th>
+                <td colspan="2" class="meta-value">{{ h.carga_horaria }}</td>
               </tr>
               {% endfor %}
             </tbody>
