@@ -4,6 +4,7 @@ from django.db import transaction
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
+from django.utils import timezone
 
 from .auditoria import registrar_auditoria
 from .models import (
@@ -262,6 +263,35 @@ class DocumentoHistoricoAdmin(admin.ModelAdmin):
     @admin.display(description="SHA-256")
     def hash_curto(self, obj):
         return obj.hash_sha256[:16]
+
+    def save_model(self, request, obj, form, change):
+        antes_revogado = False
+        if change and obj.pk:
+            antes_revogado = (
+                DocumentoHistorico.objects
+                .filter(pk=obj.pk)
+                .values_list("revogado", flat=True)
+                .first()
+                or False
+            )
+
+        if obj.revogado and not obj.revogado_em:
+            obj.revogado_em = timezone.now()
+        if not obj.revogado:
+            obj.revogado_em = None
+            obj.motivo_revogacao = ""
+
+        super().save_model(request, obj, form, change)
+
+        if obj.revogado and not antes_revogado:
+            registrar_auditoria(
+                request,
+                "DOCUMENTO_REVOGADO",
+                entidade="DocumentoHistorico",
+                objeto_id=obj.id,
+                objeto_repr=obj.aluno.nome,
+                detalhes={"motivo": obj.motivo_revogacao[:255]},
+            )
 
 
 @admin.register(AuditoriaEvento)
