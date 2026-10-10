@@ -7,6 +7,7 @@ from pathlib import Path
 from django.db import transaction
 from django.db.models import Max
 
+from .academico import matriz_para_ano
 from .models import Aluno, ConfiguracaoAno, Nota, RegistroAcademico
 
 
@@ -805,6 +806,11 @@ def aplicar_notas_pdf(resultado):
                     config = ConfiguracaoAno.objects.filter(
                         ano=item["ano"]
                     ).first()
+                    matriz = (
+                        config.matriz_curricular
+                        if config and config.matriz_curricular_id
+                        else matriz_para_ano(item["ano"])
+                    )
                     registro = RegistroAcademico.objects.create(
                         aluno=aluno,
                         nome_original=aluno.nome,
@@ -818,6 +824,7 @@ def aplicar_notas_pdf(resultado):
                             config.municipio if config else "MONTES CLAROS"
                         ),
                         uf=(config.uf if config else "MG"),
+                        matriz_curricular=matriz,
                     )
                     registros_criados += 1
                 else:
