@@ -9,7 +9,8 @@
   </div>
   <div class="toolbar-actions">
     <a class="btn" href="{% url 'historico:aluno_editar' aluno.codigo %}">Editar dados e notas</a>
-    <a class="btn primary" href="{% url 'historico:historico' aluno.codigo %}">Visualizar histórico</a>
+    <a class="btn" href="{% url 'historico:historico' aluno.codigo %}">Histórico oficial</a>
+    <a class="btn primary" href="{% url 'historico:relatorio_aluno' aluno.codigo %}">Emitir relatório completo</a>
   </div>
 </div>
 
@@ -77,6 +78,7 @@
           <th>Ano</th>
           <th>Série</th>
           <th>Turma</th>
+          <th>Professor(a)</th>
           <th>Notas</th>
           <th>Faltas</th>
           <th>Frequência</th>
@@ -99,6 +101,7 @@
           <td>{{ item.registro.ano }}</td>
           <td>{% if item.registro.serie %}{{ item.registro.serie }}º ano{% else %}—{% endif %}</td>
           <td>{{ item.registro.turma|default:"—" }}</td>
+          <td>{{ item.registro.professor_responsavel|default:"—" }}</td>
           <td>
             <strong>{{ item.quantidade_notas }}</strong>
             {% if item.quantidade_notas == 0 %}
