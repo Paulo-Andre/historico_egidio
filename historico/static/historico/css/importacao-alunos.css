@@ -405,3 +405,19 @@
     width: 100%;
   }
 }
+
+
+.upload-area small {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.upload-form.is-loading .upload-area {
+  opacity: .75;
+  pointer-events: none;
+}
+
+.upload-form button:disabled {
+  cursor: wait;
+  opacity: .72;
+}
