@@ -158,7 +158,20 @@
                 {% if forloop.first %}
                   <th rowspan="25" class="stage-cell">ANOS INICIAIS</th>
                 {% endif %}
-                <th rowspan="5" class="year-cell">{{ h.serie }}º ANO: {{ h.ano }}</th>
+                <th rowspan="5" class="year-cell">
+                  {{ h.serie }}º ANO:
+                  <span
+                    class="year-value"
+                    contenteditable="{{ can_edit|yesno:'true,false' }}"
+                    data-role="ano-letivo"
+                    {% if h.registro %}
+                      data-model="registro"
+                      data-field="ano"
+                    {% else %}
+                      data-new-registro-serie="{{ h.serie }}"
+                    {% endif %}
+                  >{{ h.ano }}</span>
+                </th>
                 <th class="row-label">APROVEITAMENTO</th>
                 <td class="grade-cell" {% if can_edit and h.registro %}contenteditable="true"{% endif %} data-role="nota" data-nota="lingua_portuguesa">{{ h.notas.lingua_portuguesa }}</td>
                 <td class="grade-cell" {% if can_edit and h.registro %}contenteditable="true"{% endif %} data-role="nota" data-nota="arte">{{ h.notas.arte }}</td>
