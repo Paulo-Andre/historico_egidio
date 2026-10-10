@@ -308,14 +308,20 @@ def historico_oficial_do_aluno(aluno):
     )
 
     ultima_serie = ultimo_registro.serie if ultimo_registro else ""
-    data_conclusao = aluno.data_conclusao.strip()
 
-    if ultimo_registro:
+    # O valor preenchido diretamente no aluno é uma substituição manual
+    # para o certificado. Só usamos a configuração anual como fallback.
+    data_conclusao = aluno.data_conclusao.strip()
+    if not data_conclusao and ultimo_registro:
         config_ultimo_ano = ConfiguracaoAno.objects.filter(
             ano=ultimo_registro.ano
         ).first()
         if config_ultimo_ano and config_ultimo_ano.data_conclusao.strip():
             data_conclusao = config_ultimo_ano.data_conclusao.strip()
+
+    serie_conclusao = aluno.serie_conclusao.strip()
+    if not serie_conclusao and ultima_serie:
+        serie_conclusao = f"{ultima_serie}º"
 
     return {
         "anos": anos,
@@ -327,5 +333,6 @@ def historico_oficial_do_aluno(aluno):
         "data_expedicao": data_expedicao,
         "data_conclusao": data_conclusao,
         "ultima_serie": ultima_serie,
+        "serie_conclusao": serie_conclusao,
         "observacao_historico": aluno.observacao_historico,
     }
