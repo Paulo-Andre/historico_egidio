@@ -143,6 +143,16 @@ class RegistroAcademico(models.Model):
                 name="uniq_registro_ano_linha",
             )
         ]
+        indexes = [
+            models.Index(
+                fields=["aluno", "ano", "serie"],
+                name="hist_reg_aluno_ano_serie_idx",
+            ),
+            models.Index(
+                fields=["ano", "serie", "turma"],
+                name="hist_reg_ano_serie_turma_idx",
+            ),
+        ]
 
     def __str__(self):
         nome = self.aluno.nome if self.aluno_id else self.nome_original
