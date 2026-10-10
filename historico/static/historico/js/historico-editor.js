@@ -17,6 +17,7 @@
   let saveTimer = null;
   let saving = false;
   let pendingSave = false;
+  const dirtyEditableElements = new WeakSet();
 
   const cleanText = (element) => (element?.textContent || "").trim();
 
@@ -162,6 +163,17 @@
   function collectPayload() {
     const aluno = {};
     root.querySelectorAll("[data-model='aluno'][data-field]").forEach((element) => {
+      const optionalDerived = element.dataset.optionalDerived === "1";
+      const hasManualValue = element.dataset.hasManualValue === "1";
+
+      if (
+        optionalDerived
+        && !hasManualValue
+        && !dirtyEditableElements.has(element)
+      ) {
+        return;
+      }
+
       aluno[element.dataset.field] = cleanText(element);
     });
 
@@ -225,6 +237,11 @@
       if (!response.ok || !data.ok) {
         throw new Error(data.erro || "Não foi possível salvar.");
       }
+      root.querySelectorAll("[data-optional-derived='1']").forEach((element) => {
+        if (dirtyEditableElements.has(element)) {
+          element.dataset.hasManualValue = cleanText(element) ? "1" : "0";
+        }
+      });
       setSaveState("Alterações salvas", "is-saved");
       if (data.recarregar) {
         window.location.reload();
@@ -250,6 +267,7 @@
 
   function onInput(event) {
     const target = event.target;
+    dirtyEditableElements.add(target);
     const recordId = recordIdFromElement(target);
 
     if (target.matches("[data-role='ano-letivo']")) {
