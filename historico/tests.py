@@ -865,36 +865,26 @@ class LimpezaTotalNotasAdminTests(TestCase):
 
 
 
-class SegurancaAcessoTests(TestCase):
+class AcessoTemporariamenteLivreTests(TestCase):
     def setUp(self):
-        self.staff = get_user_model().objects.create_user(
-            username="secretaria-segura",
-            password="senha-teste",
-            is_staff=True,
+        self.aluno = Aluno.objects.create(
+            codigo=700,
+            nome="ALUNO ACESSO TEMPORARIO",
         )
-        self.user = get_user_model().objects.create_user(
-            username="usuario-comum",
-            password="senha-teste",
-            is_staff=False,
-        )
-        self.aluno = Aluno.objects.create(codigo=700, nome="ALUNO PROTEGIDO")
 
-    def test_dashboard_exige_autenticacao(self):
+    def test_dashboard_abre_sem_login_durante_integracao(self):
         response = self.client.get(reverse("historico:inicio"))
-        self.assertEqual(response.status_code, 302)
-        self.assertIn("/admin/login/", response["Location"])
+        self.assertEqual(response.status_code, 200)
 
-    def test_usuario_comum_nao_pode_enumerar_alunos(self):
-        self.client.login(username="usuario-comum", password="senha-teste")
+    def test_prontuario_abre_sem_login_durante_integracao(self):
         response = self.client.get(
             reverse("historico:aluno", args=[self.aluno.codigo])
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
 
-    def test_secretaria_acessa_aluno(self):
-        self.client.login(username="secretaria-segura", password="senha-teste")
+    def test_tela_de_edicao_abre_sem_login_durante_integracao(self):
         response = self.client.get(
-            reverse("historico:aluno", args=[self.aluno.codigo])
+            reverse("historico:aluno_editar", args=[self.aluno.codigo])
         )
         self.assertEqual(response.status_code, 200)
 
@@ -950,6 +940,16 @@ class DocumentoAutenticadoTests(TestCase):
         self.assertEqual(pagina.status_code, 200)
         self.assertContains(pagina, "Histórico autenticado")
         self.assertContains(pagina, "data:image/svg+xml;base64")
+
+    def test_emissao_tambem_funciona_sem_login_nesta_fase(self):
+        self.client.logout()
+        response = self.client.post(
+            reverse("historico:emitir_historico", args=[self.aluno.codigo])
+        )
+
+        self.assertEqual(response.status_code, 302)
+        documento = DocumentoHistorico.objects.latest("emitido_em")
+        self.assertIsNone(documento.emitido_por)
 
     def test_validacao_publica_mascara_dados(self):
         self.client.login(username="emissor", password="senha-teste")
