@@ -73,7 +73,7 @@
   position: relative;
   width: 210mm;
   height: 297mm;
-  padding: 3.8mm 0 0 3.8mm;
+  padding: 3.99mm 4.97mm 0 3.99mm;
   margin: 2rem auto;
   overflow: visible;
   background: var(--doc-paper);
@@ -86,19 +86,17 @@
 }
 
 .official-page-border {
-  width: 198.9mm;
-  height: 283.6mm;
+  width: 100%;
+  height: 289.17mm;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  display: block;
   border: .65pt solid var(--doc-black);
   background: #fff;
 }
 
 .official-letterhead {
-  flex: 0 0 17mm;
-  height: 17mm;
-  padding: 2.75mm 1.5mm .25mm;
+  height: 17.80mm;
+  padding: 2.8mm 1.5mm .25mm;
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
@@ -106,22 +104,21 @@
 
 .official-letterhead img {
   display: block;
-  width: 195.3mm;
+  width: 100%;
   height: 14mm;
   object-fit: fill;
 }
 
 .certificate-section {
-  flex: 0 0 29.45mm;
-  width: 196.8mm;
-  height: 29.45mm;
+  width: calc(100% - 1.8mm);
+  height: 27.34mm;
   margin-left: .9mm;
   overflow: hidden;
   border: .55pt solid var(--doc-black);
 }
 
 .certificate-section h1 {
-  height: 6.55mm;
+  height: 5.65mm;
   margin: 0;
   display: flex;
   align-items: center;
@@ -133,7 +130,7 @@
 
 .certificate-table {
   width: 100%;
-  height: 22.9mm;
+  height: 21.69mm;
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 6.95pt;
@@ -142,8 +139,8 @@
 
 .certificate-table th,
 .certificate-table td {
-  height: 4.58mm;
-  padding: .25mm .55mm;
+  height: 4.34mm;
+  padding: .2mm .55mm;
   border: 0;
   vertical-align: middle;
   white-space: nowrap;
@@ -176,10 +173,9 @@
 .uppercase { text-transform: uppercase; }
 
 .history-title {
-  flex: 0 0 9.3mm;
-  width: 196.8mm;
-  height: 9.3mm;
-  margin: 2.1mm 0 2.5mm .9mm;
+  width: calc(100% - 1.8mm);
+  height: 9mm;
+  margin: 3.53mm 0 2.82mm .9mm;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -195,13 +191,12 @@
 }
 
 .history-frame {
-  flex: 0 0 183.3mm;
-  width: 196.8mm;
-  height: 183.3mm;
+  width: calc(100% - 1.8mm);
+  height: 183.62mm;
   margin-left: .9mm;
   min-height: 0;
   display: grid;
-  grid-template-columns: 132.21mm 64.59mm;
+  grid-template-columns: 67.0787% 32.9213%;
   border: .65pt solid var(--doc-black);
 }
 
@@ -212,7 +207,7 @@
 }
 
 .official-history-table {
-  width: 132.21mm;
+  width: 100%;
   height: 100%;
   table-layout: fixed;
   border-collapse: collapse;
@@ -221,20 +216,20 @@
   font-variant-numeric: tabular-nums;
 }
 
-.official-history-table .c-etapa { width: 6.223mm; }
-.official-history-table .c-ano { width: 8.001mm; }
-.official-history-table .c-rotulo { width: 25.781mm; }
-.official-history-table .c-portugues { width: 9.186mm; }
-.official-history-table .c-arte { width: 7.112mm; }
-.official-history-table .c-edfisica { width: 8.594mm; }
-.official-history-table .c-ingles { width: 8.594mm; }
-.official-history-table .c-matematica { width: 9.779mm; }
-.official-history-table .c-ciencias { width: 8.594mm; }
-.official-history-table .c-geografia { width: 8.89mm; }
-.official-history-table .c-historia { width: 8.594mm; }
-.official-history-table .c-religioso { width: 8.594mm; }
-.official-history-table .c-total { width: 8.594mm; }
-.official-history-table .c-status { width: 5.673mm; }
+.official-history-table .c-etapa { width: 4.8576%; }
+.official-history-table .c-ano { width: 6.0302%; }
+.official-history-table .c-rotulo { width: 19.5980%; }
+.official-history-table .c-portugues { width: 6.8677%; }
+.official-history-table .c-arte { width: 5.5276%; }
+.official-history-table .c-edfisica { width: 6.5327%; }
+.official-history-table .c-ingles { width: 6.5327%; }
+.official-history-table .c-matematica { width: 7.2027%; }
+.official-history-table .c-ciencias { width: 6.3652%; }
+.official-history-table .c-geografia { width: 6.5327%; }
+.official-history-table .c-historia { width: 6.5327%; }
+.official-history-table .c-religioso { width: 6.5327%; }
+.official-history-table .c-total { width: 6.5327%; }
+.official-history-table .c-status { width: 4.3551%; }
 
 .official-history-table th,
 .official-history-table td {
@@ -254,11 +249,11 @@
 }
 
 .official-history-table thead .knowledge-row {
-  height: 17.6mm;
+  height: 17.64mm;
 }
 
 .official-history-table thead .subjects-row {
-  height: 20.4mm;
+  height: 20.46mm;
 }
 
 .official-history-table thead th {
@@ -272,7 +267,44 @@
 }
 
 .vertical-category,
-.vertical-subject,
+.vertical-subject {
+  position: relative;
+  padding: 0 !important;
+  overflow: hidden;
+  writing-mode: horizontal-tb;
+  transform: none;
+}
+
+.rotated-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  transform-origin: center;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: normal;
+}
+
+.category-label {
+  width: 15.5mm;
+  font-size: 6pt;
+  font-weight: 600;
+  line-height: 1.05;
+}
+
+.subject-label {
+  width: 18.8mm;
+  font-size: 5.7pt;
+  font-weight: 500;
+  line-height: 1.03;
+}
+
+.subject-label--tall {
+  width: 34mm;
+}
+
 .stage-cell,
 .year-cell,
 .status-cell {
@@ -281,20 +313,8 @@
   white-space: nowrap;
 }
 
-.vertical-category {
-  font-size: 6.95pt;
-  font-weight: 600 !important;
-  letter-spacing: .01em;
-}
-
-.vertical-subject {
-  padding: .45mm .15mm !important;
-  font-size: 6.95pt;
-  font-weight: 500 !important;
-}
-
 .official-history-table tbody tr {
-  height: 5.8mm;
+  height: 5.82mm;
 }
 
 .official-history-table tbody tr.year-group-start:not(:first-child) > * {
@@ -368,21 +388,21 @@
   min-width: 0;
   height: 100%;
   overflow: hidden;
-  padding: 1.4mm .8mm .7mm;
-  font-size: 6pt;
-  line-height: 1.15;
+  padding: 1.15mm 1mm .7mm;
+  font-size: 4.25pt;
+  line-height: 1.12;
   text-align: center;
 }
 
 .legal-column h3 {
-  margin: 0 0 1.2mm;
-  font-size: 6pt;
+  margin: 0 0 .8mm;
+  font-size: 4.55pt;
   font-weight: 700;
   text-align: left;
 }
 
 .legal-column p {
-  margin: 0 0 .85mm;
+  margin: 0 0 .72mm;
   text-align: center;
 }
 
@@ -391,16 +411,15 @@
 }
 
 .legal-divider {
-  margin: .3mm 0 .7mm;
-  font-size: 6pt;
+  margin: .25mm 0 .55mm;
+  font-size: 4pt;
   letter-spacing: -.02em;
 }
 
 .bottom-observation {
-  flex: 0 0 18.25mm;
-  width: 196.8mm;
-  height: 18.25mm;
-  margin-left: .9mm;
+  width: calc(100% - 1.8mm);
+  height: 16.93mm;
+  margin: 1.41mm 0 0 .9mm;
   display: grid;
   grid-template-columns: 23mm 1fr;
   border-bottom: .55pt solid var(--doc-black);
@@ -424,10 +443,9 @@
 
 .official-footer {
   position: relative;
-  flex: 0 0 21.3mm;
-  width: 198.9mm;
-  height: 21.3mm;
-  min-height: 21.3mm;
+  width: 100%;
+  height: 26.72mm;
+  min-height: 26.72mm;
   padding: 0;
   font-size: 6pt;
 }
@@ -576,7 +594,7 @@
     height: 297mm !important;
     min-height: 297mm !important;
     margin: 0 !important;
-    padding: 3.8mm 0 0 3.8mm !important;
+    padding: 3.99mm 4.97mm 0 3.99mm !important;
     overflow: hidden !important;
     border-radius: 0 !important;
     box-shadow: none !important;
