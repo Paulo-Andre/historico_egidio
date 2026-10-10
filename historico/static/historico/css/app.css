@@ -1029,3 +1029,173 @@ th {
     flex-direction: column;
   }
 }
+
+
+/* ===== Identidade escolar do cabeçalho ===== */
+:root {
+  --school-gold: #b8892f;
+  --school-cream: #fbfaf6;
+}
+
+.app-header {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  background: #fff;
+  border-bottom: 1px solid #dbe4df;
+  box-shadow: 0 8px 24px -22px rgba(15, 23, 42, .55);
+}
+
+.school-strip {
+  background: linear-gradient(90deg, #0b3f25, #14532d);
+  color: #eefbf3;
+  border-bottom: 2px solid var(--school-gold);
+}
+
+.school-strip__inner {
+  width: min(1380px, calc(100% - 32px));
+  min-height: 29px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.school-strip__separator {
+  color: #e6c56f;
+}
+
+.app-header__inner {
+  min-height: 70px;
+  padding: 0;
+}
+
+.brand {
+  gap: 11px;
+}
+
+.brand-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px 12px 12px 5px;
+  background: linear-gradient(145deg, #14532d, #0b3f25);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+}
+
+.brand-mark svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.brand-copy strong {
+  color: #12251a;
+  font-size: 17px;
+}
+
+.brand-copy small {
+  color: #6b766f;
+  letter-spacing: .09em;
+}
+
+.main-nav {
+  gap: 2px !important;
+}
+
+.app-header .main-nav a {
+  position: relative;
+  padding: 10px 11px;
+  border-radius: 8px;
+  color: #33453b;
+  font-size: 12px;
+}
+
+.app-header .main-nav a::after {
+  content: "";
+  position: absolute;
+  left: 11px;
+  right: 11px;
+  bottom: 4px;
+  height: 2px;
+  border-radius: 2px;
+  background: transparent;
+}
+
+.app-header .main-nav a:hover {
+  background: var(--school-cream);
+  color: #0f5132;
+}
+
+.app-header .main-nav a.is-active {
+  background: #edf8f1;
+  color: #0b4a2b;
+}
+
+.app-header .main-nav a.is-active::after {
+  background: var(--school-gold);
+}
+
+.app-header .main-nav a.nav-admin {
+  margin-left: 8px;
+  padding-left: 15px;
+  border-left: 1px solid #dce5df;
+  color: #435249;
+}
+
+.dashboard-heading {
+  margin-top: 4px;
+}
+
+.dashboard-heading h1 {
+  color: #102319;
+}
+
+.dashboard-search-card {
+  border-color: #cce9d7;
+  background: linear-gradient(110deg, #f3fbf6, #fff 68%);
+}
+
+.dashboard-metrics {
+  margin-top: 16px;
+}
+
+.empty-state--search {
+  min-height: 150px;
+  background: #fbfcfb;
+}
+
+@media (max-width: 1180px) {
+  .app-header__inner {
+    padding: 10px 0 11px;
+  }
+
+  .school-strip__inner {
+    width: min(100% - 24px, 1380px);
+  }
+}
+
+@media (max-width: 640px) {
+  .school-strip__inner {
+    min-height: 32px;
+    flex-wrap: wrap;
+    gap: 4px 7px;
+    padding: 5px 0;
+  }
+
+  .school-strip__separator {
+    display: none;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+  }
+}
