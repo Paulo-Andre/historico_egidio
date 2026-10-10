@@ -1,5 +1,9 @@
 import json
+import time
+import uuid
+from pathlib import Path
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Q
@@ -9,7 +13,18 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from .forms import AlunoCadastroForm, ConfiguracaoAnoForm, UF_CHOICES
+from .forms import (
+    AlunoCadastroForm,
+    ConfiguracaoAnoForm,
+    ImportacaoAlunosForm,
+    UF_CHOICES,
+)
+from .importacao_alunos import (
+    ErroImportacao,
+    analisar_lista,
+    aplicar_lista,
+    ler_lista_alunos,
+)
 from .models import Aluno, ConfiguracaoAno, Nota, RegistroAcademico
 from .services import historico_do_aluno, historico_oficial_do_aluno
 
@@ -144,6 +159,148 @@ def inicio(request):
             "alunos": alunos,
             "total": Aluno.objects.count(),
             "registros": RegistroAcademico.objects.count(),
+        },
+    )
+
+
+def _diretorio_importacoes():
+    diretorio = Path(settings.DATA_DIR) / "importacoes_alunos"
+    diretorio.mkdir(parents=True, exist_ok=True)
+
+    limite = time.time() - (24 * 60 * 60)
+    for arquivo in diretorio.glob("*"):
+        try:
+            if arquivo.is_file() and arquivo.stat().st_mtime < limite:
+                arquivo.unlink()
+        except OSError:
+            pass
+
+    return diretorio
+
+
+def _arquivo_importacao_da_sessao(request):
+    token = request.session.get("importacao_alunos_token")
+    extensao = request.session.get("importacao_alunos_extensao")
+    if not token or extensao not in {".xls", ".xlsx"}:
+        return None
+
+    try:
+        uuid.UUID(token)
+    except (ValueError, TypeError):
+        return None
+
+    caminho = _diretorio_importacoes() / f"{token}{extensao}"
+    return caminho if caminho.exists() else None
+
+
+def _limpar_importacao_da_sessao(request):
+    caminho = _arquivo_importacao_da_sessao(request)
+    if caminho:
+        try:
+            caminho.unlink()
+        except OSError:
+            pass
+
+    for chave in (
+        "importacao_alunos_token",
+        "importacao_alunos_extensao",
+        "importacao_alunos_nome",
+    ):
+        request.session.pop(chave, None)
+
+
+@login_required
+def importar_lista_alunos(request):
+    if not request.user.is_staff:
+        return HttpResponseForbidden(
+            "Apenas operadores autorizados podem atualizar a lista de alunos."
+        )
+
+    formulario = ImportacaoAlunosForm()
+    previa = None
+    leitura = None
+    erro = ""
+    resultado = None
+
+    if request.method == "POST":
+        acao = request.POST.get("acao", "previsualizar")
+
+        if acao == "cancelar":
+            _limpar_importacao_da_sessao(request)
+            return redirect("historico:importar_lista_alunos")
+
+        if acao == "aplicar":
+            caminho = _arquivo_importacao_da_sessao(request)
+            if not caminho:
+                erro = "A prévia expirou. Envie a lista novamente."
+            else:
+                try:
+                    leitura = ler_lista_alunos(caminho)
+                    resultado = aplicar_lista(leitura)
+                    _limpar_importacao_da_sessao(request)
+                except ErroImportacao as exc:
+                    erro = str(exc)
+                except Exception:
+                    erro = (
+                        "Não foi possível aplicar a atualização. "
+                        "Nenhum aluno foi removido."
+                    )
+        else:
+            formulario = ImportacaoAlunosForm(request.POST, request.FILES)
+            if formulario.is_valid():
+                arquivo = formulario.cleaned_data["arquivo"]
+                extensao = Path(arquivo.name).suffix.lower()
+                token = str(uuid.uuid4())
+                caminho = _diretorio_importacoes() / f"{token}{extensao}"
+
+                _limpar_importacao_da_sessao(request)
+
+                with caminho.open("wb") as destino:
+                    for bloco in arquivo.chunks():
+                        destino.write(bloco)
+
+                try:
+                    leitura = ler_lista_alunos(caminho)
+                    previa = analisar_lista(leitura)
+                except ErroImportacao as exc:
+                    erro = str(exc)
+                    try:
+                        caminho.unlink()
+                    except OSError:
+                        pass
+                except Exception:
+                    erro = (
+                        "Não foi possível ler esta planilha. "
+                        "Confirme se o arquivo é um XLS/XLSX válido."
+                    )
+                    try:
+                        caminho.unlink()
+                    except OSError:
+                        pass
+                else:
+                    request.session["importacao_alunos_token"] = token
+                    request.session["importacao_alunos_extensao"] = extensao
+                    request.session["importacao_alunos_nome"] = arquivo.name
+
+    if previa is None and resultado is None and not erro:
+        caminho = _arquivo_importacao_da_sessao(request)
+        if caminho:
+            try:
+                leitura = ler_lista_alunos(caminho)
+                previa = analisar_lista(leitura)
+            except Exception:
+                _limpar_importacao_da_sessao(request)
+
+    return render(
+        request,
+        "historico/importar_lista_alunos.html",
+        {
+            "formulario": formulario,
+            "previa": previa,
+            "leitura": leitura,
+            "erro": erro,
+            "resultado": resultado,
+            "arquivo_nome": request.session.get("importacao_alunos_nome", ""),
         },
     )
 
