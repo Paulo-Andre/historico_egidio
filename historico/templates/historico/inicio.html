@@ -7,7 +7,10 @@
       <p>Sistema web com banco de dados próprio.</p>
     </div>
     {% if request.user.is_staff %}
-      <a class="btn" href="{% url 'historico:aluno_novo' %}">CADASTRAR NOVO ALUNO</a>
+      <div class="toolbar-actions">
+        <a class="btn" href="{% url 'historico:dados_extras_anuais' %}">DADOS POR ANO</a>
+        <a class="btn" href="{% url 'historico:aluno_novo' %}">CADASTRAR NOVO ALUNO</a>
+      </div>
     {% endif %}
   </div>
   <form>
