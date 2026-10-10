@@ -1,8 +1,15 @@
 {% extends 'historico/base.html' %}
 {% block content %}
 <section class="hero">
-  <h1>Emissão de Histórico Escolar</h1>
-  <p>Sistema web com banco de dados próprio.</p>
+  <div class="toolbar">
+    <div>
+      <h1>Emissão de Histórico Escolar</h1>
+      <p>Sistema web com banco de dados próprio.</p>
+    </div>
+    {% if request.user.is_staff %}
+      <a class="btn" href="{% url 'historico:aluno_novo' %}">CADASTRAR NOVO ALUNO</a>
+    {% endif %}
+  </div>
   <form>
     <input name="q" value="{{ q }}" placeholder="Digite o código ou nome do aluno" autofocus>
     <button>LOCALIZAR ALUNO</button>
