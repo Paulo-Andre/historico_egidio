@@ -13,7 +13,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from .academico import indicadores_aluno, matriz_para_ano, painel_geral
+from .academico import (
+    indicadores_aluno,
+    matriz_para_ano,
+    painel_geral,
+    relatorio_integridade,
+)
 from .auditoria import registrar_auditoria
 from .documentos import (
     contexto_snapshot,
@@ -510,6 +515,18 @@ def importar_lista_alunos(request):
             "resultado": resultado,
             "arquivo_nome": request.session.get("importacao_alunos_nome", ""),
         },
+    )
+
+
+@login_required
+def integridade_dados(request):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Acesso restrito à secretaria.")
+
+    return render(
+        request,
+        "historico/integridade_dados.html",
+        {"relatorio": relatorio_integridade()},
     )
 
 
