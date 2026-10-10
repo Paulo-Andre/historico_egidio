@@ -138,23 +138,36 @@
 }
 
 
-.certificate-table .cert-col-1 { width: 16%; }
-.certificate-table .cert-col-2 { width: 6%; }
-.certificate-table .cert-col-3 { width: 4%; }
-.certificate-table .cert-col-4 { width: 6%; }
-.certificate-table .cert-col-5 { width: 6%; }
-.certificate-table .cert-col-6 { width: 5%; }
-.certificate-table .cert-col-7 { width: 7%; }
-.certificate-table .cert-col-8 { width: 12%; }
-.certificate-table .cert-col-9 { width: 7%; }
-.certificate-table .cert-col-10 { width: 6%; }
-.certificate-table .cert-col-11 { width: 5%; }
-.certificate-table .cert-col-12 { width: 20%; }
+.certificate-table .cert-d { width: 3.207%; }
+.certificate-table .cert-e { width: 3.998%; }
+.certificate-table .cert-f { width: 4.389%; }
+.certificate-table .cert-g { width: 4.389%; }
+.certificate-table .cert-h { width: 4.389%; }
+.certificate-table .cert-i { width: 4.700%; }
+.certificate-table .cert-j { width: 3.658%; }
+.certificate-table .cert-k { width: 4.389%; }
+.certificate-table .cert-l { width: 4.389%; }
+.certificate-table .cert-m { width: 5.000%; }
+.certificate-table .cert-n { width: 4.329%; }
+.certificate-table .cert-o { width: 4.499%; }
+.certificate-table .cert-p { width: 4.389%; }
+.certificate-table .cert-q { width: 4.389%; }
+.certificate-table .cert-r { width: 4.389%; }
+.certificate-table .cert-s { width: 2.736%; }
+.certificate-table .cert-t { width: 6.003%; }
+.certificate-table .cert-u { width: 3.988%; }
+.certificate-table .cert-v { width: 3.798%; }
+.certificate-table .cert-w { width: 3.728%; }
+.certificate-table .cert-x { width: 3.357%; }
+.certificate-table .cert-y { width: 8.257%; }
+.certificate-table .cert-z { width: 1.323%; }
+.certificate-table .cert-aa { width: 1.854%; }
+.certificate-table .cert-ab { width: .451%; }
 
 .certificate-table th,
 .certificate-table td {
   height: 4.34mm;
-  padding: .2mm .55mm;
+  padding: .18mm .18mm;
   border: 0;
   vertical-align: middle;
   white-space: nowrap;
@@ -167,12 +180,10 @@
 }
 
 .certificate-label {
+  padding-left: .28mm !important;
+  padding-right: .18mm !important;
   overflow: hidden;
   text-overflow: clip;
-}
-
-.certificate-label--intro {
-  padding-right: 1.2mm !important;
 }
 
 .certificate-label--identity {
@@ -180,15 +191,20 @@
   letter-spacing: -.02em;
 }
 
-.certificate-label--sexo {
-  padding-left: .3mm !important;
-  padding-right: .3mm !important;
+.certificate-label--conclusion {
+  text-align: right !important;
+  padding-right: .5mm !important;
+}
+
+.center-label {
   text-align: center !important;
 }
 
 .certificate-table .value {
   position: relative;
-  border-bottom: .45pt solid var(--doc-black);
+  padding-left: .35mm !important;
+  padding-right: .35mm !important;
+  border-bottom: .55pt solid var(--doc-black);
   font-size: 8pt;
   font-weight: 700;
   text-align: left;
@@ -197,16 +213,16 @@
 }
 
 .certificate-table .sex-value {
-  padding-left: .35mm !important;
-  padding-right: .35mm !important;
+  padding-left: .55mm !important;
+  padding-right: .25mm !important;
   text-align: left;
-  font-size: 7.7pt;
+  font-size: 8pt;
 }
 
 .certificate-table .strong { font-weight: 700; }
 .certificate-table .center { text-align: center; }
 .certificate-table .plain-cell {
-  padding-left: .3mm;
+  padding-left: .35mm;
   font-size: 6.95pt;
   white-space: nowrap;
 }
