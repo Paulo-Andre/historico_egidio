@@ -9,6 +9,9 @@
   const csrfToken = document.querySelector("input[name='csrfmiddlewaretoken']")?.value;
   const saveStatus = document.querySelector("[data-save-status]");
   const saveButton = document.querySelector("[data-action='save']");
+  const avgOutput = document.querySelector("[data-summary-average]");
+  const loadOutput = document.querySelector("[data-summary-load]");
+  const alertOutput = document.querySelector("[data-summary-alerts]");
   const logo = document.querySelector("[data-letterhead]");
 
   let saveTimer = null;
@@ -19,11 +22,30 @@
 
   function parseNumber(value) {
     const text = String(value ?? "").trim();
-    if (!text || /^N\d/i.test(text) || text === "*" || text === "-") {
-      return null;
-    }
+    if (!text || /^N\d/i.test(text) || text === "*" || text === "-") return null;
     const match = text.replace(",", ".").match(/-?\d+(?:\.\d+)?/);
     return match ? Number(match[0]) : null;
+  }
+
+  function recordIdFromElement(element) {
+    return element?.closest("[data-registro-id]")?.dataset.registroId || null;
+  }
+
+  function rowsForRecord(id) {
+    if (!id) return [];
+    return [...root.querySelectorAll(`[data-registro-id="${id}"]`)];
+  }
+
+  function firstInRows(rows, selector) {
+    for (const row of rows) {
+      const found = row.querySelector(selector);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function allInRows(rows, selector) {
+    return rows.flatMap((row) => [...row.querySelectorAll(selector)]);
   }
 
   function thresholdForGrade(rawThreshold, grade) {
@@ -35,126 +57,130 @@
     return threshold;
   }
 
-  function registroIds() {
-    return [
-      ...root.querySelectorAll("tr[data-registro-id]"),
-    ].map((row) => row.dataset.registroId).filter(Boolean);
-  }
+  function evaluateRecord(recordId, autoStatus = false) {
+    const rows = rowsForRecord(recordId);
+    if (!rows.length) return false;
 
-  function firstRowFor(registroId) {
-    return root.querySelector(`tr[data-registro-id="${registroId}"]`);
-  }
+    const firstRow = rows[0];
+    const thresholdRaw = firstRow.dataset.mediaMinima || "";
+    const serie = Number(firstRow.dataset.serie || "0");
+    const noteCells = allInRows(rows, "[data-role='nota']");
+    const statusCell = firstInRows(rows, "[data-field='resultado']");
 
-  function rowsFor(registroId) {
-    const first = firstRowFor(registroId);
-    if (!first) return [];
+    let anyFailed = false;
+    let numericCount = 0;
 
-    const rows = [first];
-    let current = first.nextElementSibling;
-    while (current && rows.length < 5) {
-      if (current.dataset.registroId) break;
-      rows.push(current);
-      current = current.nextElementSibling;
-    }
-    return rows;
-  }
-
-  function registroIdForElement(element) {
-    let row = element?.closest("tr");
-    while (row) {
-      if (row.dataset.registroId) return row.dataset.registroId;
-      row = row.previousElementSibling;
-    }
-    return "";
-  }
-
-  function evaluateRecord(registroId) {
-    if (!registroId) return;
-
-    const first = firstRowFor(registroId);
-    if (!first) return;
-
-    const notes = [...first.querySelectorAll("[data-role='nota']")];
-    const status = first.querySelector("[data-role='situacao']");
-
-    let failed = false;
-
-    notes.forEach((cell) => {
+    noteCells.forEach((cell) => {
       const grade = parseNumber(cleanText(cell));
-      const threshold = thresholdForGrade(cell.dataset.mediaMinima || "", grade ?? 0);
-      const isFailed = grade !== null && grade < threshold;
-      cell.classList.toggle("alerta-reprovado", isFailed);
-      if (isFailed) failed = true;
+      let failed = false;
+      if (grade !== null) {
+        numericCount += 1;
+        failed = grade < thresholdForGrade(thresholdRaw, grade);
+      }
+      cell.classList.toggle("alerta-reprovado", failed);
+      if (failed) anyFailed = true;
     });
 
-    if (status) {
-      const statusFailed =
-        failed || cleanText(status).toUpperCase() === "REPROVADO";
-      status.classList.toggle("alerta-reprovado", statusFailed);
-      status.dataset.status = statusFailed ? "reprovado" : "aprovado";
+    if (autoStatus && canEdit && statusCell && numericCount > 0) {
+      const current = cleanText(statusCell).toUpperCase();
+      const locked = new Set(["EM CURSO", "EM CONTINUIDADE"]);
+      if (!locked.has(current)) {
+        if ((serie === 3 || serie === 5) && anyFailed) {
+          statusCell.textContent = "REPROVADO";
+        } else {
+          statusCell.textContent = "APTO";
+        }
+      }
     }
+
+    const explicitReprovado = cleanText(statusCell).toUpperCase() === "REPROVADO";
+    const warning = anyFailed || explicitReprovado;
+
+    if (statusCell) {
+      statusCell.classList.toggle("alerta-reprovado", warning);
+      statusCell.dataset.status = warning ? "reprovado" : "aprovado";
+    }
+
+    rows.forEach((row) => row.classList.toggle("registro-com-alerta", warning));
+    return warning;
   }
 
-  const monthMap = {
-    JANEIRO: "01",
-    FEVEREIRO: "02",
-    "FEVEREIRO": "02",
-    MARÇO: "03",
-    MARCO: "03",
-    ABRIL: "04",
-    MAIO: "05",
-    JUNHO: "06",
-    JULHO: "07",
-    AGOSTO: "08",
-    SETEMBRO: "09",
-    OUTUBRO: "10",
-    NOVEMBRO: "11",
-    DEZEMBRO: "12",
-  };
+  function syncAnnualLoad(recordId, source) {
+    const rows = rowsForRecord(recordId);
+    const value = cleanText(source);
+    allInRows(rows, "[data-field='carga_horaria']").forEach((cell) => {
+      if (cell !== source) cell.textContent = value;
+    });
+  }
 
-  function collectBirthDate(aluno) {
-    const dia = cleanText(root.querySelector("[data-date-part='dia']"));
-    const mesRaw = cleanText(root.querySelector("[data-date-part='mes']")).toUpperCase();
-    const ano = cleanText(root.querySelector("[data-date-part='ano']"));
-    const mes = monthMap[mesRaw] || (mesRaw.match(/^\d{1,2}$/) ? mesRaw.padStart(2, "0") : "");
+  function recalcSummary() {
+    const grades = [...root.querySelectorAll("[data-registro-id] [data-role='nota']")]
+      .map((cell) => parseNumber(cleanText(cell)))
+      .filter((value) => value !== null)
+      .map((value) => (value > 10 ? value / 10 : value));
 
-    if (dia && mes && ano) {
-      aluno.nascimento = `${dia.padStart(2, "0")}/${mes}/${ano}`;
+    const loads = [...root.querySelectorAll("[data-role='carga-horaria-total']")]
+      .map((cell) => parseNumber(cleanText(cell)))
+      .filter((value) => value !== null);
+
+    const alertedIds = new Set(
+      [...root.querySelectorAll(".registro-com-alerta[data-registro-id]")]
+        .map((row) => row.dataset.registroId)
+        .filter(Boolean)
+    );
+
+    if (avgOutput) {
+      if (grades.length) {
+        const avg = grades.reduce((sum, value) => sum + value, 0) / grades.length;
+        avgOutput.textContent = avg.toLocaleString("pt-BR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      } else {
+        avgOutput.textContent = "—";
+      }
     }
+
+    if (loadOutput) {
+      const total = loads.reduce((sum, value) => sum + value, 0);
+      loadOutput.textContent = total
+        ? total.toLocaleString("pt-BR", { maximumFractionDigits: 2 })
+        : "—";
+    }
+
+    if (alertOutput) alertOutput.textContent = String(alertedIds.size);
+  }
+
+  function uniqueRecordIds() {
+    return [...new Set(
+      [...root.querySelectorAll("[data-registro-id]")]
+        .map((row) => row.dataset.registroId)
+        .filter(Boolean)
+    )];
   }
 
   function collectPayload() {
     const aluno = {};
-    root.querySelectorAll("[data-model='aluno'][data-field]").forEach((el) => {
-      aluno[el.dataset.field] = cleanText(el);
+    root.querySelectorAll("[data-model='aluno'][data-field]").forEach((element) => {
+      aluno[element.dataset.field] = cleanText(element);
     });
-    collectBirthDate(aluno);
 
-    const registros = registroIds().map((id) => {
-      const rows = rowsFor(id);
+    const registros = uniqueRecordIds().map((id) => {
+      const rows = rowsForRecord(id);
       const campos = {};
-      rows.forEach((row) => {
-        row.querySelectorAll("[data-model='registro'][data-field]").forEach((el) => {
-          campos[el.dataset.field] = cleanText(el);
-        });
+      allInRows(rows, "[data-model='registro'][data-field]").forEach((element) => {
+        campos[element.dataset.field] = cleanText(element);
       });
 
       const notas = {};
-      const first = rows[0];
-      if (first) {
-        first.querySelectorAll("[data-nota]").forEach((el) => {
-          notas[el.dataset.nota] = {
-            valor: cleanText(el),
-            carga_horaria: "",
-          };
-        });
-      }
+      allInRows(rows, "[data-nota]").forEach((element) => {
+        notas[element.dataset.nota] = {
+          valor: cleanText(element),
+          carga_horaria: "",
+        };
+      });
 
-      return {
-        id: Number(id),
-        campos,
-        notas,
-      };
+      return { id: Number(id), campos, notas };
     });
 
     return { aluno, registros };
@@ -168,7 +194,6 @@
 
   async function saveNow() {
     if (!canEdit || !saveUrl || !csrfToken) return;
-
     if (saving) {
       pendingSave = true;
       return;
@@ -193,7 +218,6 @@
       if (!response.ok || !data.ok) {
         throw new Error(data.erro || "Não foi possível salvar.");
       }
-
       setSaveState("Alterações salvas", "is-saved");
     } catch (error) {
       setSaveState(error.message || "Erro ao salvar", "is-error");
@@ -208,19 +232,24 @@
 
   function scheduleSave() {
     if (!canEdit) return;
-    clearTimeout(saveTimer);
-    setSaveState("Alterações pendentes", "");
+    window.clearTimeout(saveTimer);
+    setSaveState("Alterações pendentes");
     saveTimer = window.setTimeout(saveNow, 900);
   }
 
   function onInput(event) {
     const target = event.target;
-    const registroId = registroIdForElement(target);
+    const recordId = recordIdFromElement(target);
 
-    if (target.matches("[data-role='nota']")) {
-      evaluateRecord(registroId);
+    if (target.matches("[data-role='nota']") && recordId) {
+      evaluateRecord(recordId, true);
+    } else if (target.matches("[data-field='carga_horaria']") && recordId) {
+      syncAnnualLoad(recordId, target);
+    } else if (target.matches("[data-field='resultado']") && recordId) {
+      evaluateRecord(recordId, false);
     }
 
+    recalcSummary();
     scheduleSave();
   }
 
@@ -229,19 +258,16 @@
 
     root.querySelectorAll("[contenteditable='true']").forEach((element) => {
       element.addEventListener("input", onInput);
-
       element.addEventListener("blur", () => {
-        clearTimeout(saveTimer);
+        window.clearTimeout(saveTimer);
         saveNow();
       });
-
       element.addEventListener("keydown", (event) => {
         if (event.key === "Enter" && element.dataset.multiline !== "1") {
           event.preventDefault();
           element.blur();
         }
       });
-
       element.addEventListener("paste", (event) => {
         event.preventDefault();
         const text = event.clipboardData?.getData("text/plain") || "";
@@ -258,28 +284,23 @@
       const response = await fetch(logo.dataset.fallbackB64Url);
       if (!response.ok) return;
       const base64 = (await response.text()).trim();
-      if (base64) {
-        logo.src = `data:image/jpeg;base64,${base64}`;
-      }
+      if (base64) logo.src = `data:image/jpeg;base64,${base64}`;
     } catch (_) {
-      // Mantém o restante do documento utilizável se a imagem falhar.
+      // Mantém o restante do documento disponível mesmo se a imagem falhar.
     }
   }
 
-  registroIds().forEach(evaluateRecord);
+  uniqueRecordIds().forEach((id) => evaluateRecord(id, false));
+  recalcSummary();
   setupEditableFields();
 
-  if (saveButton) {
-    saveButton.addEventListener("click", () => {
-      clearTimeout(saveTimer);
-      saveNow();
-    });
-  }
+  saveButton?.addEventListener("click", () => {
+    window.clearTimeout(saveTimer);
+    saveNow();
+  });
 
   if (logo) {
     logo.addEventListener("error", hydrateLetterheadFallback, { once: true });
-    if (logo.complete && logo.naturalWidth === 0) {
-      hydrateLetterheadFallback();
-    }
+    if (logo.complete && logo.naturalWidth === 0) hydrateLetterheadFallback();
   }
 })();
