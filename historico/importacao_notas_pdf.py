@@ -246,11 +246,9 @@ def _itens_tabela_saeweb(tabela, contexto, numero_pagina):
             if valor:
                 notas[componente] = valor
 
-        # Alunos transferidos/remanejados podem aparecer sem notas; eles não
-        # entram nesta importação de aproveitamento, mas não geram erro.
-        if not notas:
-            continue
-
+        # Alunos transferidos/remanejados podem aparecer sem notas. A relação
+        # com a turma continua sendo importada para preservar o percurso do
+        # aluno, mas nasce inativa no Histórico Escolar oficial.
         itens.append(
             {
                 "nome": nome,
@@ -387,8 +385,6 @@ def _extrair_tabelas_pagina(pagina, numero_pagina, contexto=None):
                 continue
             item = _linha_tabela_para_item(linha, mapa, numero_pagina)
             if not item["nome"]:
-                continue
-            if not item["notas"]:
                 continue
             itens.append(item)
             if len(itens) >= MAX_ITENS:
@@ -584,9 +580,6 @@ def extrair_notas_pdf(caminho):
             faltando.append("ano")
         if not item.get("serie"):
             faltando.append("série")
-        if not item.get("notas"):
-            faltando.append("notas")
-
         if faltando:
             item["erro"] = "Faltando: " + ", ".join(faltando)
             incompletos.append(item)
@@ -595,8 +588,8 @@ def extrair_notas_pdf(caminho):
 
     if not validos:
         raise ErroImportacaoNotasPdf(
-            "Não encontrei registros completos com nome do aluno, ano, "
-            "série e notas. Verifique o formato do PDF."
+            "Não encontrei registros completos com nome do aluno, ano e "
+            "série. Verifique o formato do PDF."
         )
 
     return {
@@ -826,8 +819,15 @@ def aplicar_notas_pdf(resultado):
                         .prefetch_related("notas")
                     )
 
-                    ativo_novo = not ativos_mesma_serie
-                    if ativos_mesma_serie:
+                    tem_notas_importadas = any(
+                        _texto(valor) not in {"", "-", "*"}
+                        for valor in item.get("notas", {}).values()
+                    )
+                    ativo_novo = bool(
+                        tem_notas_importadas and not ativos_mesma_serie
+                    )
+
+                    if ativos_mesma_serie and tem_notas_importadas:
                         algum_ativo_com_nota = any(
                             any(
                                 _texto(nota.valor) not in {"", "-", "*"}
