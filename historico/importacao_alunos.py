@@ -307,6 +307,7 @@ def ler_lista_alunos(caminho):
         raise ErroImportacao("Formato não suportado. Use .xls ou .xlsx.")
 
     melhor = None
+    encontrou_lista_forte = False
     for nome_planilha, linhas in fontes:
         for indice, valores in enumerate(linhas[:40]):
             score, mapeamento = _avaliar_cabecalho(valores)
@@ -319,6 +320,16 @@ def ler_lista_alunos(caminho):
                     "mapeamento": mapeamento,
                     "cabecalho": valores,
                 }
+
+            # Ao encontrar uma lista claramente identificada (como a aba
+            # DADOS ALUNOS do arquivo oficial), para imediatamente. Isso evita
+            # carregar dezenas de abas de atas e deixa o upload muito mais rápido.
+            if score >= 10 and "nome" in mapeamento.values():
+                encontrou_lista_forte = True
+                break
+
+        if encontrou_lista_forte:
+            break
 
     if not melhor or melhor["score"] < 5 or "nome" not in melhor["mapeamento"].values():
         raise ErroImportacao(
