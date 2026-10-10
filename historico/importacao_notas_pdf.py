@@ -516,10 +516,13 @@ def analisar_notas_pdf(resultado):
     conflitos = 0
     registros_novos = 0
     registros_existentes = 0
+    notas_novas = 0
+    notas_preservadas = 0
 
     for item in resultado["itens"]:
         aluno, erro = _resolver_aluno(item["nome"], indice)
         registro = None
+        componentes_existentes = set()
 
         if erro:
             status = "conflito"
@@ -532,8 +535,11 @@ def analisar_notas_pdf(resultado):
                 erro = erro_registro
                 conflitos += 1
             elif registro:
-                status = "atualizar"
+                status = "completar"
                 registros_existentes += 1
+                componentes_existentes = set(
+                    registro.notas.values_list("componente", flat=True)
+                )
             else:
                 status = "novo_registro"
                 registros_novos += 1
@@ -541,6 +547,30 @@ def analisar_notas_pdf(resultado):
             status = "novo_aluno"
             alunos_novos += 1
             registros_novos += 1
+
+        notas_legiveis = []
+        novas_item = 0
+        preservadas_item = 0
+
+        for componente, valor in item["notas"].items():
+            ja_existe = componente in componentes_existentes
+            if ja_existe:
+                preservadas_item += 1
+                notas_preservadas += 1
+            else:
+                novas_item += 1
+                notas_novas += 1
+
+            notas_legiveis.append(
+                {
+                    "componente": ROTULOS_COMPONENTES.get(
+                        componente,
+                        componente,
+                    ),
+                    "valor": valor,
+                    "ja_existe": ja_existe,
+                }
+            )
 
         itens.append(
             {
@@ -550,16 +580,9 @@ def analisar_notas_pdf(resultado):
                 "aluno_codigo": aluno.codigo if aluno else "",
                 "registro_id": registro.id if registro else "",
                 "quantidade_notas": len(item["notas"]),
-                "notas_legiveis": [
-                    {
-                        "componente": ROTULOS_COMPONENTES.get(
-                            componente,
-                            componente,
-                        ),
-                        "valor": valor,
-                    }
-                    for componente, valor in item["notas"].items()
-                ],
+                "notas_novas": novas_item,
+                "notas_preservadas": preservadas_item,
+                "notas_legiveis": notas_legiveis,
             }
         )
 
@@ -569,6 +592,8 @@ def analisar_notas_pdf(resultado):
         "alunos_existentes": alunos_existentes,
         "registros_novos": registros_novos,
         "registros_existentes": registros_existentes,
+        "notas_novas": notas_novas,
+        "notas_preservadas": notas_preservadas,
         "conflitos": conflitos,
         "incompletos": len(resultado.get("incompletos", [])),
         "itens": itens,
@@ -587,11 +612,14 @@ def aplicar_notas_pdf(resultado):
     alunos_criados = 0
     alunos_localizados = 0
     registros_criados = 0
-    registros_atualizados = 0
-    notas_atualizadas = 0
+    registros_existentes = 0
+    notas_adicionadas = 0
+    notas_preservadas = 0
     conflitos = []
 
     for item in resultado["itens"]:
+        # A ATA usa o nome do estudante como chave de associação.
+        # O cadastro do aluno nunca é alterado por esta importação.
         aluno, erro = _resolver_aluno(item["nome"], indice)
         if erro:
             conflitos.append(
@@ -646,35 +674,35 @@ def aplicar_notas_pdf(resultado):
             )
             registros_criados += 1
         else:
-            alterados = []
-            turma = _texto(item.get("turma"))
-            if turma and registro.turma != turma[:120]:
-                registro.turma = turma[:120]
-                alterados.append("turma")
-            if registro.nome_original != aluno.nome:
-                registro.nome_original = aluno.nome
-                alterados.append("nome_original")
-            if alterados:
-                registro.save(update_fields=alterados)
-            registros_atualizados += 1
+            # Registro de outro envio/ano já existente: apenas preserva.
+            # Turma, nome_original e demais campos não são sobrescritos.
+            registros_existentes += 1
 
         for componente, valor in item["notas"].items():
             valor = _texto(valor)
             if not valor:
                 continue
-            Nota.objects.update_or_create(
+
+            _, criada = Nota.objects.get_or_create(
                 registro=registro,
                 componente=componente,
                 defaults={"valor": valor[:40]},
             )
-            notas_atualizadas += 1
+            if criada:
+                notas_adicionadas += 1
+            else:
+                # Regra append-only: se a nota já existe para este
+                # aluno + ano + série + disciplina, mantém exatamente
+                # o valor que já estava no banco.
+                notas_preservadas += 1
 
     return {
         "total": len(resultado["itens"]),
         "alunos_criados": alunos_criados,
         "alunos_localizados": alunos_localizados,
         "registros_criados": registros_criados,
-        "registros_atualizados": registros_atualizados,
-        "notas_atualizadas": notas_atualizadas,
+        "registros_existentes": registros_existentes,
+        "notas_adicionadas": notas_adicionadas,
+        "notas_preservadas": notas_preservadas,
         "conflitos": conflitos,
     }
