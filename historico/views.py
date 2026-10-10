@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from .forms import AlunoCadastroForm
+from .forms import AlunoCadastroForm, UF_CHOICES
 from .models import Aluno, Nota, RegistroAcademico
 from .services import historico_do_aluno, historico_oficial_do_aluno
 
@@ -25,6 +25,24 @@ COMPONENTES_EDITOR = [
     Nota.EDUCACAO_RELIGIOSA,
 ]
 ROTULOS_COMPONENTES = dict(Nota.COMPONENTES)
+
+
+RESULTADO_CHOICES = [
+    ("", "Selecione..."),
+    ("APROVADO", "Aprovado"),
+    ("REPROVADO", "Reprovado"),
+    ("APTO", "Apto"),
+    ("APTA", "Apta"),
+    ("EM CONTINUIDADE", "Em continuidade"),
+    ("EM CURSO", "Em curso"),
+]
+
+
+def _opcoes_com_valor_atual(opcoes, atual):
+    atuais = {valor for valor, _ in opcoes}
+    if atual and atual not in atuais:
+        return list(opcoes) + [(atual, atual)]
+    return opcoes
 
 
 def _registros_por_serie(aluno):
@@ -92,6 +110,14 @@ def _anos_editor(aluno=None, post=None):
                 "escola": valor("escola"),
                 "municipio": valor("municipio", "MONTES CLAROS"),
                 "uf": valor("uf", "MG"),
+                "uf_opcoes": _opcoes_com_valor_atual(
+                    UF_CHOICES,
+                    valor("uf", "MG"),
+                ),
+                "resultado_opcoes": _opcoes_com_valor_atual(
+                    RESULTADO_CHOICES,
+                    valor("resultado"),
+                ),
                 "observacao": valor("observacao"),
                 "notas": notas,
             }
