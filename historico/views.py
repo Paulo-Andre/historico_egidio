@@ -17,6 +17,7 @@ from .forms import (
     AlunoCadastroForm,
     ConfiguracaoAnoForm,
     ImportacaoAlunosForm,
+    ImportacaoNotasPdfForm,
     UF_CHOICES,
 )
 from .importacao_alunos import (
@@ -24,6 +25,12 @@ from .importacao_alunos import (
     analisar_lista,
     aplicar_lista,
     ler_lista_alunos,
+)
+from .importacao_notas_pdf import (
+    ErroImportacaoNotasPdf,
+    analisar_notas_pdf,
+    aplicar_notas_pdf,
+    extrair_notas_pdf,
 )
 from .models import Aluno, ConfiguracaoAno, Nota, RegistroAcademico
 from .services import historico_do_aluno, historico_oficial_do_aluno
@@ -207,6 +214,144 @@ def _limpar_importacao_da_sessao(request):
         "importacao_alunos_nome",
     ):
         request.session.pop(chave, None)
+
+
+def _diretorio_importacoes_notas():
+    diretorio = Path(settings.DATA_DIR) / "importacoes_notas_pdf"
+    diretorio.mkdir(parents=True, exist_ok=True)
+
+    limite = time.time() - (24 * 60 * 60)
+    for arquivo in diretorio.glob("*.pdf"):
+        try:
+            if arquivo.is_file() and arquivo.stat().st_mtime < limite:
+                arquivo.unlink()
+        except OSError:
+            pass
+
+    return diretorio
+
+
+def _arquivo_notas_da_sessao(request):
+    token = request.session.get("importacao_notas_pdf_token")
+    if not token:
+        return None
+
+    try:
+        uuid.UUID(token)
+    except (ValueError, TypeError):
+        return None
+
+    caminho = _diretorio_importacoes_notas() / f"{token}.pdf"
+    return caminho if caminho.exists() else None
+
+
+def _limpar_importacao_notas(request):
+    caminho = _arquivo_notas_da_sessao(request)
+    if caminho:
+        try:
+            caminho.unlink()
+        except OSError:
+            pass
+
+    request.session.pop("importacao_notas_pdf_token", None)
+    request.session.pop("importacao_notas_pdf_nome", None)
+
+
+@login_required
+def importar_notas_pdf(request):
+    if not request.user.is_staff:
+        return HttpResponseForbidden(
+            "Apenas operadores autorizados podem importar notas."
+        )
+
+    formulario = ImportacaoNotasPdfForm()
+    previa = None
+    leitura = None
+    erro = ""
+    resultado = None
+
+    if request.method == "POST":
+        acao = request.POST.get("acao", "previsualizar")
+
+        if acao == "cancelar":
+            _limpar_importacao_notas(request)
+            return redirect("historico:importar_notas_pdf")
+
+        if acao == "aplicar":
+            caminho = _arquivo_notas_da_sessao(request)
+            if not caminho:
+                erro = "A prévia expirou. Envie o PDF novamente."
+            else:
+                try:
+                    leitura = extrair_notas_pdf(caminho)
+                    resultado = aplicar_notas_pdf(leitura)
+                    _limpar_importacao_notas(request)
+                except ErroImportacaoNotasPdf as exc:
+                    erro = str(exc)
+                except Exception:
+                    erro = (
+                        "Não foi possível aplicar as notas. "
+                        "Nenhum aluno ou nota foi removido."
+                    )
+        else:
+            formulario = ImportacaoNotasPdfForm(request.POST, request.FILES)
+            if formulario.is_valid():
+                arquivo = formulario.cleaned_data["arquivo"]
+                token = str(uuid.uuid4())
+                caminho = _diretorio_importacoes_notas() / f"{token}.pdf"
+
+                _limpar_importacao_notas(request)
+
+                with caminho.open("wb") as destino:
+                    for bloco in arquivo.chunks():
+                        destino.write(bloco)
+
+                try:
+                    leitura = extrair_notas_pdf(caminho)
+                    previa = analisar_notas_pdf(leitura)
+                except ErroImportacaoNotasPdf as exc:
+                    erro = str(exc)
+                    try:
+                        caminho.unlink()
+                    except OSError:
+                        pass
+                except Exception:
+                    erro = (
+                        "Não foi possível ler este PDF. "
+                        "Confirme se ele possui texto selecionável e dados de notas."
+                    )
+                    try:
+                        caminho.unlink()
+                    except OSError:
+                        pass
+                else:
+                    request.session["importacao_notas_pdf_token"] = token
+                    request.session["importacao_notas_pdf_nome"] = arquivo.name
+
+    if previa is None and resultado is None and not erro:
+        caminho = _arquivo_notas_da_sessao(request)
+        if caminho:
+            try:
+                leitura = extrair_notas_pdf(caminho)
+                previa = analisar_notas_pdf(leitura)
+            except Exception:
+                _limpar_importacao_notas(request)
+
+    return render(
+        request,
+        "historico/importar_notas_pdf.html",
+        {
+            "formulario": formulario,
+            "previa": previa,
+            "leitura": leitura,
+            "erro": erro,
+            "resultado": resultado,
+            "arquivo_nome": request.session.get(
+                "importacao_notas_pdf_nome",
+                "",
+            ),
+        },
+    )
 
 
 @login_required
