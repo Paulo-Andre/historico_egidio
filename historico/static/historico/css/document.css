@@ -227,6 +227,26 @@
   white-space: nowrap;
 }
 
+.editable-certificate-field[contenteditable="true"] {
+  cursor: text;
+  min-width: 7mm;
+}
+
+.editable-certificate-field[contenteditable="true"]:hover,
+.editable-certificate-field[contenteditable="true"]:focus {
+  background: #f6fbf7;
+  outline: 1px solid rgba(20, 83, 45, .22);
+  outline-offset: -1px;
+}
+
+.editable-certificate-field[contenteditable="true"]:empty::before {
+  content: attr(data-placeholder);
+  color: #9aa6a0;
+  font-size: 6pt;
+  font-weight: 400;
+  opacity: .85;
+}
+
 .uppercase { text-transform: uppercase; }
 
 .history-title {
@@ -674,6 +694,10 @@
 }
 
 @media print {
+  .editable-certificate-field[contenteditable="true"]:empty::before {
+    content: "" !important;
+  }
+
   html,
   body {
     width: 210mm !important;
