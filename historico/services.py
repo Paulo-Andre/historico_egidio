@@ -297,15 +297,21 @@ def historico_oficial_do_aluno(aluno):
         hoje = timezone.localdate()
         data_expedicao = f"{hoje.day:02d}/{hoje.month:02d}/{hoje.year}"
 
+    ultimo_registro = max(
+        registros,
+        key=lambda registro: (registro.ano, registro.id),
+        default=None,
+    )
+
+    ultima_serie = ultimo_registro.serie if ultimo_registro else ""
     data_conclusao = aluno.data_conclusao.strip()
-    if not data_conclusao:
-        quinto_ano = por_serie.get(5)
-        if quinto_ano:
-            config_quinto = ConfiguracaoAno.objects.filter(
-                ano=quinto_ano.ano
-            ).first()
-            if config_quinto:
-                data_conclusao = config_quinto.data_conclusao.strip()
+
+    if ultimo_registro:
+        config_ultimo_ano = ConfiguracaoAno.objects.filter(
+            ano=ultimo_registro.ano
+        ).first()
+        if config_ultimo_ano and config_ultimo_ano.data_conclusao.strip():
+            data_conclusao = config_ultimo_ano.data_conclusao.strip()
 
     return {
         "anos": anos,
@@ -316,5 +322,6 @@ def historico_oficial_do_aluno(aluno):
         "nascimento": nascimento,
         "data_expedicao": data_expedicao,
         "data_conclusao": data_conclusao,
+        "ultima_serie": ultima_serie,
         "observacao_historico": aluno.observacao_historico,
     }
