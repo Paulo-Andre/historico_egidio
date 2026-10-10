@@ -3,12 +3,101 @@ import json
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Q
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponseForbidden, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
+from .forms import AlunoCadastroForm
 from .models import Aluno, Nota, RegistroAcademico
 from .services import historico_do_aluno, historico_oficial_do_aluno
+
+
+COMPONENTES_EDITOR = [
+    Nota.LINGUA_PORTUGUESA,
+    Nota.ARTE,
+    Nota.EDUCACAO_FISICA,
+    Nota.LINGUA_INGLESA,
+    Nota.MATEMATICA,
+    Nota.CIENCIAS,
+    Nota.GEOGRAFIA,
+    Nota.HISTORIA,
+    Nota.EDUCACAO_RELIGIOSA,
+]
+ROTULOS_COMPONENTES = dict(Nota.COMPONENTES)
+
+
+def _registros_por_serie(aluno):
+    if not aluno or not aluno.pk:
+        return {}
+
+    registros = {}
+    queryset = (
+        aluno.registros_academicos
+        .prefetch_related("notas")
+        .filter(serie__gte=1, serie__lte=5)
+        .order_by("serie", "ano", "id")
+    )
+    for registro in queryset:
+        registros[registro.serie] = registro
+    return registros
+
+
+def _anos_editor(aluno=None, post=None):
+    registros = _registros_por_serie(aluno)
+    anos = []
+
+    for serie in range(1, 6):
+        registro = registros.get(serie)
+        notas_db = (
+            {nota.componente: nota.valor for nota in registro.notas.all()}
+            if registro
+            else {}
+        )
+        prefixo = f"serie_{serie}_"
+
+        def valor(campo, padrao=""):
+            if post is not None:
+                return str(post.get(prefixo + campo, padrao)).strip()
+            if not registro:
+                return padrao
+            return str(getattr(registro, campo, "") or "").strip()
+
+        notas = []
+        for componente in COMPONENTES_EDITOR:
+            nome_campo = f"nota_{componente}"
+            nota_valor = (
+                str(post.get(prefixo + nome_campo, "")).strip()
+                if post is not None
+                else str(notas_db.get(componente, "") or "").strip()
+            )
+            notas.append(
+                {
+                    "codigo": componente,
+                    "rotulo": ROTULOS_COMPONENTES[componente],
+                    "valor": nota_valor,
+                }
+            )
+
+        anos.append(
+            {
+                "serie": serie,
+                "registro": registro,
+                "ano": valor("ano"),
+                "turma": valor("turma"),
+                "faltas": valor("faltas"),
+                "frequencia": valor("frequencia"),
+                "carga_horaria": valor("carga_horaria"),
+                "resultado": valor("resultado"),
+                "escola": valor("escola"),
+                "municipio": valor("municipio", "MONTES CLAROS"),
+                "uf": valor("uf", "MG"),
+                "observacao": valor("observacao"),
+                "notas": notas,
+            }
+        )
+
+    return anos
 
 
 def inicio(request):
@@ -61,6 +150,142 @@ def historico_impressao(request, codigo):
             "can_edit": bool(
                 request.user.is_authenticated and request.user.is_staff
             ),
+        },
+    )
+
+
+@login_required
+def gerenciar_aluno(request, codigo=None):
+    if not request.user.is_staff:
+        return HttpResponseForbidden(
+            "Apenas operadores autorizados podem cadastrar ou editar alunos."
+        )
+
+    aluno = None
+    if codigo is not None:
+        aluno = get_object_or_404(Aluno, codigo=codigo)
+
+    if request.method == "POST":
+        form = AlunoCadastroForm(request.POST, instance=aluno)
+        anos = _anos_editor(aluno, request.POST)
+        erros_anos = []
+
+        anos_validos = {}
+        for item in anos:
+            texto_ano = item["ano"]
+            if not texto_ano:
+                continue
+            try:
+                ano = int(texto_ano)
+            except ValueError:
+                erros_anos.append(
+                    f'{item["serie"]}º ano: informe um ano letivo válido.'
+                )
+                continue
+            if ano < 1000 or ano > 9999:
+                erros_anos.append(
+                    f'{item["serie"]}º ano: informe o ano com 4 dígitos.'
+                )
+                continue
+            anos_validos[item["serie"]] = ano
+
+        if form.is_valid() and not erros_anos:
+            with transaction.atomic():
+                aluno_salvo = form.save()
+                registros = _registros_por_serie(aluno_salvo)
+
+                for item in anos:
+                    serie = item["serie"]
+                    if serie not in anos_validos:
+                        continue
+
+                    registro = registros.get(serie)
+                    novo_ano = anos_validos[serie]
+                    if registro is None:
+                        registro = RegistroAcademico(
+                            aluno=aluno_salvo,
+                            nome_original=aluno_salvo.nome,
+                            serie=serie,
+                            ano=novo_ano,
+                        )
+                    else:
+                        if registro.ano != novo_ano:
+                            # Ao alterar manualmente o ano, a referência de linha
+                            # da importação deixa de representar a origem exata.
+                            registro.linha_origem = None
+                        registro.ano = novo_ano
+
+                    for campo in (
+                        "turma",
+                        "faltas",
+                        "frequencia",
+                        "carga_horaria",
+                        "resultado",
+                        "escola",
+                        "municipio",
+                        "uf",
+                        "observacao",
+                    ):
+                        setattr(
+                            registro,
+                            campo,
+                            _texto_limitado(
+                                RegistroAcademico,
+                                campo,
+                                item[campo],
+                            ),
+                        )
+
+                    registro.nome_original = aluno_salvo.nome
+                    registro.save()
+
+                    for nota_item in item["notas"]:
+                        Nota.objects.update_or_create(
+                            registro=registro,
+                            componente=nota_item["codigo"],
+                            defaults={
+                                "valor": _texto_limitado(
+                                    Nota,
+                                    "valor",
+                                    nota_item["valor"],
+                                )
+                            },
+                        )
+
+            parametro = "criado=1" if aluno is None else "salvo=1"
+            return redirect(
+                f'{reverse("historico:aluno_editar", args=[aluno_salvo.codigo])}?{parametro}'
+            )
+    else:
+        if aluno is None:
+            ultimo_codigo = (
+                Aluno.objects.order_by("-codigo")
+                .values_list("codigo", flat=True)
+                .first()
+                or 0
+            )
+            form = AlunoCadastroForm(
+                initial={
+                    "codigo": ultimo_codigo + 1,
+                    "curso": "ENSINO FUNDAMENTAL",
+                    "ativo": True,
+                }
+            )
+        else:
+            form = AlunoCadastroForm(instance=aluno)
+        anos = _anos_editor(aluno)
+        erros_anos = []
+
+    return render(
+        request,
+        "historico/aluno_form.html",
+        {
+            "aluno": aluno,
+            "form": form,
+            "anos": anos,
+            "erros_anos": erros_anos,
+            "salvo": request.GET.get("salvo") == "1",
+            "criado": request.GET.get("criado") == "1",
         },
     )
 
