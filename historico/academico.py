@@ -309,6 +309,18 @@ def relatorio_completo_aluno(aluno):
                     registro.carga_horaria
                     or (config.ch_anual if config else "")
                 ),
+                "escola": (
+                    registro.escola
+                    or (config.escola if config else "")
+                ),
+                "municipio": (
+                    registro.municipio
+                    or (config.municipio if config else "")
+                ),
+                "uf": (
+                    registro.uf
+                    or (config.uf if config else "")
+                ),
             }
         )
 
