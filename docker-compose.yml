@@ -7,7 +7,9 @@ services:
     volumes:
       - ./data:/app/data
     environment:
-      DJANGO_DEBUG: "0"
-      DJANGO_ALLOWED_HOSTS: "*"
-      DJANGO_SECRET_KEY: "troque-por-uma-chave-forte"
+      DJANGO_DEBUG: "${DJANGO_DEBUG:-0}"
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-127.0.0.1,localhost,192.168.1.17}"
+      DJANGO_SECURE_COOKIES: "${DJANGO_SECURE_COOKIES:-0}"
+      DJANGO_SECURE_SSL_REDIRECT: "${DJANGO_SECURE_SSL_REDIRECT:-0}"
+      DJANGO_HSTS_SECONDS: "${DJANGO_HSTS_SECONDS:-0}"
     restart: unless-stopped
