@@ -612,7 +612,7 @@ class ImportacaoNotasPdfPreservacaoHistoricoTests(TestCase):
         )
 
         self.assertEqual(nota_2022.valor, "81")
-        self.assertEqual(nota_2023.valor, "95")
+        self.assertEqual(nota_2023.valor, "72")
         self.assertEqual(
             Nota.objects.filter(
                 registro__aluno=aluno,
@@ -620,6 +620,58 @@ class ImportacaoNotasPdfPreservacaoHistoricoTests(TestCase):
             ).count(),
             2,
         )
+
+    def test_importacao_so_adiciona_nota_que_ainda_nao_existe(self):
+        aluno = Aluno.objects.create(
+            codigo=502,
+            nome="ALUNO SEM SOBRESCRITA",
+            curso="ENSINO FUNDAMENTAL",
+        )
+        registro = RegistroAcademico.objects.create(
+            aluno=aluno,
+            nome_original=aluno.nome,
+            ano=2024,
+            serie=4,
+            turma="TURMA ANTIGA",
+        )
+        Nota.objects.create(
+            registro=registro,
+            componente=Nota.MATEMATICA,
+            valor="70",
+        )
+
+        resultado = aplicar_notas_pdf(
+            {
+                "itens": [
+                    {
+                        "nome": "ALUNO SEM SOBRESCRITA",
+                        "ano": 2024,
+                        "serie": 4,
+                        "turma": "TURMA NOVA",
+                        "notas": {
+                            Nota.MATEMATICA: "99",
+                            Nota.HISTORIA: "88",
+                        },
+                    }
+                ]
+            }
+        )
+
+        registro.refresh_from_db()
+        matematica = Nota.objects.get(
+            registro=registro,
+            componente=Nota.MATEMATICA,
+        )
+        historia = Nota.objects.get(
+            registro=registro,
+            componente=Nota.HISTORIA,
+        )
+
+        self.assertEqual(matematica.valor, "70")
+        self.assertEqual(historia.valor, "88")
+        self.assertEqual(registro.turma, "TURMA ANTIGA")
+        self.assertEqual(resultado["notas_adicionadas"], 1)
+        self.assertEqual(resultado["notas_preservadas"], 1)
 
     def test_mesma_disciplina_pode_existir_em_cinco_anos(self):
         aluno = Aluno.objects.create(
