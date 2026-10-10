@@ -564,50 +564,58 @@ def relatorios(request):
     serie_texto = (request.GET.get("serie") or "").strip()
     turma = (request.GET.get("turma") or "").strip()[:120]
     status = (request.GET.get("status") or "").strip().lower()
-
-    alunos_qs = Aluno.objects.all()
-    if q:
-        filtro = Q(nome__icontains=q) | Q(matricula__icontains=q)
-        if q.isdigit():
-            filtro |= Q(codigo=int(q))
-        alunos_qs = alunos_qs.filter(filtro)
-
-    filtros_relacao = {}
-    if ano_texto.isdigit():
-        filtros_relacao["registros_academicos__ano"] = int(ano_texto)
-    if serie_texto.isdigit() and 1 <= int(serie_texto) <= 5:
-        filtros_relacao["registros_academicos__serie"] = int(serie_texto)
-    if turma:
-        filtros_relacao["registros_academicos__turma__icontains"] = turma
-    if status == "ativa":
-        filtros_relacao["registros_academicos__ativo_no_historico"] = True
-    elif status == "inativa":
-        filtros_relacao["registros_academicos__ativo_no_historico"] = False
-
-    if filtros_relacao:
-        alunos_qs = alunos_qs.filter(**filtros_relacao)
-
-    alunos_qs = (
-        alunos_qs
-        .annotate(
-            total_relacoes=Count(
-                "registros_academicos",
-                distinct=True,
-            ),
-            relacoes_ativas=Count(
-                "registros_academicos",
-                filter=Q(
-                    registros_academicos__ativo_no_historico=True
-                ),
-                distinct=True,
-            ),
-        )
-        .distinct()
-        .order_by("nome")
+    pesquisa_realizada = any(
+        [q, ano_texto, serie_texto, turma, status]
     )
 
-    total_resultados = alunos_qs.count()
-    alunos = list(alunos_qs[:100])
+    alunos = []
+    total_resultados = 0
+
+    if pesquisa_realizada:
+        alunos_qs = Aluno.objects.all()
+        if q:
+            filtro = Q(nome__icontains=q) | Q(matricula__icontains=q)
+            if q.isdigit():
+                filtro |= Q(codigo=int(q))
+            alunos_qs = alunos_qs.filter(filtro)
+
+        filtros_relacao = {}
+        if ano_texto.isdigit():
+            filtros_relacao["registros_academicos__ano"] = int(ano_texto)
+        if serie_texto.isdigit() and 1 <= int(serie_texto) <= 5:
+            filtros_relacao["registros_academicos__serie"] = int(serie_texto)
+        if turma:
+            filtros_relacao["registros_academicos__turma__icontains"] = turma
+        if status == "ativa":
+            filtros_relacao["registros_academicos__ativo_no_historico"] = True
+        elif status == "inativa":
+            filtros_relacao["registros_academicos__ativo_no_historico"] = False
+
+        if filtros_relacao:
+            alunos_qs = alunos_qs.filter(**filtros_relacao)
+
+        alunos_qs = (
+            alunos_qs
+            .annotate(
+                total_relacoes=Count(
+                    "registros_academicos",
+                    distinct=True,
+                ),
+                relacoes_ativas=Count(
+                    "registros_academicos",
+                    filter=Q(
+                        registros_academicos__ativo_no_historico=True
+                    ),
+                    distinct=True,
+                ),
+            )
+            .distinct()
+            .order_by("nome")
+        )
+
+        total_resultados = alunos_qs.count()
+        alunos = list(alunos_qs[:100])
+
     anos_disponiveis = list(
         RegistroAcademico.objects
         .values_list("ano", flat=True)
@@ -621,6 +629,7 @@ def relatorios(request):
         {
             "alunos": alunos,
             "total_resultados": total_resultados,
+            "pesquisa_realizada": pesquisa_realizada,
             "q": q,
             "ano": ano_texto,
             "serie": serie_texto,
