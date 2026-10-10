@@ -411,19 +411,19 @@
   min-width: 0;
   height: 100%;
   overflow: hidden;
-  padding: 1.45mm 1.3mm 1.15mm;
+  padding: 1.15mm 1mm .8mm;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: .45mm;
-  font-size: 6.4pt;
-  line-height: 1.16;
+  justify-content: flex-start;
+  gap: .75mm;
+  font-size: 6.8pt;
+  line-height: 1.12;
   text-align: center;
 }
 
 .legal-column h3 {
-  margin: 0 0 .4mm;
-  font-size: 6.75pt;
+  margin: 0 0 .3mm;
+  font-size: 7.15pt;
   font-weight: 700;
   text-align: left;
 }
@@ -439,22 +439,22 @@
 }
 
 .legal-divider {
-  margin: 0;
+  margin: .1mm 0;
   flex: 0 0 auto;
-  font-size: 5.7pt;
+  font-size: 6.1pt;
   letter-spacing: -.02em;
 }
 
-/* O texto específico de 2020 adiciona várias linhas. Mantém boa
-   legibilidade sem ultrapassar a área reservada às observações. */
+/* Quando existe passagem por 2020 há um bloco legal adicional.
+   A fonte continua ampliada, com espaçamento mais compacto para caber no A4. */
 .legal-column--2020 {
-  gap: .3mm;
-  font-size: 5.95pt;
-  line-height: 1.13;
+  gap: .42mm;
+  font-size: 6.35pt;
+  line-height: 1.08;
 }
 
 .legal-column--2020 h3 {
-  font-size: 6.25pt;
+  font-size: 6.75pt;
 }
 
 .bottom-observation {
@@ -661,6 +661,24 @@
   .registro-com-alerta .year-cell {
     color: var(--doc-black) !important;
     font-weight: 500 !important;
+  }
+
+  .legal-column {
+    font-size: 6.8pt !important;
+    line-height: 1.12 !important;
+  }
+
+  .legal-column h3 {
+    font-size: 7.15pt !important;
+  }
+
+  .legal-column--2020 {
+    font-size: 6.35pt !important;
+    line-height: 1.08 !important;
+  }
+
+  .legal-column--2020 h3 {
+    font-size: 6.75pt !important;
   }
 
   .official-page-border,
