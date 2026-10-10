@@ -46,8 +46,9 @@
       <span><strong>{{ resultado.alunos_criados }}</strong> alunos criados</span>
       <span><strong>{{ resultado.alunos_localizados }}</strong> alunos localizados</span>
       <span><strong>{{ resultado.registros_criados }}</strong> anos criados</span>
-      <span><strong>{{ resultado.registros_atualizados }}</strong> anos localizados</span>
-      <span><strong>{{ resultado.notas_atualizadas }}</strong> notas processadas</span>
+      <span><strong>{{ resultado.registros_existentes }}</strong> anos já existentes</span>
+      <span><strong>{{ resultado.notas_adicionadas }}</strong> notas adicionadas</span>
+      <span><strong>{{ resultado.notas_preservadas }}</strong> notas já existentes preservadas</span>
       <span><strong>{{ resultado.conflitos|length }}</strong> conflitos</span>
     </div>
   </div>
@@ -133,9 +134,10 @@
   <div class="apply-warning">
     <strong>Regra importante:</strong>
     <span>
-      o sistema procura o aluno pelo nome. Cada conjunto de notas é gravado no
-      ano e série informados no PDF. Notas de outros anos permanecem intactas.
-      Se o aluno não existir, será criado no cadastro de alunos.
+      o sistema procura o aluno exclusivamente pelo nome no cadastro de alunos.
+      Se o nome já existir, usa esse mesmo aluno. Se não existir, cria um novo cadastro.
+      Cada nota é adicionada ao respectivo ano/série. Nenhuma nota, turma ou dado
+      acadêmico já existente é sobrescrito.
     </span>
   </div>
 
@@ -162,13 +164,16 @@
             <details>
               <summary>{{ item.quantidade_notas }} nota(s)</summary>
               {% for nota in item.notas_legiveis %}
-                <div>{{ nota.componente }}: {{ nota.valor }}</div>
+                <div>
+                  {{ nota.componente }}: {{ nota.valor }}
+                  {% if nota.ja_existe %}<small>— já existe, será preservada</small>{% endif %}
+                </div>
               {% endfor %}
             </details>
           </td>
           <td>
-            {% if item.status == "atualizar" %}
-              <span class="status-badge status-badge--update">Atualizar este ano</span>
+            {% if item.status == "completar" %}
+              <span class="status-badge status-badge--update">Adicionar apenas o que faltar</span>
             {% elif item.status == "novo_registro" %}
               <span class="status-badge status-badge--new">Criar ano escolar</span>
             {% elif item.status == "novo_aluno" %}
