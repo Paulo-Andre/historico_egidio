@@ -23,6 +23,7 @@ ALUNO_SNAPSHOT_FIELDS = (
     "identidade",
     "orgao_expedidor",
     "data_conclusao",
+    "serie_conclusao",
     "data_expedicao",
     "observacao_historico",
     "uf",
@@ -83,6 +84,7 @@ def criar_snapshot_historico(aluno):
             "data_expedicao": oficial["data_expedicao"],
             "data_conclusao": oficial["data_conclusao"],
             "ultima_serie": oficial["ultima_serie"],
+            "serie_conclusao": oficial["serie_conclusao"],
             "observacao_historico": oficial["observacao_historico"],
         },
     }
@@ -188,15 +190,22 @@ def qr_code_data_uri(request, documento):
 
 def contexto_snapshot(documento):
     snapshot = documento.snapshot
+    oficial = snapshot["oficial"]
+    ultima_serie = oficial.get("ultima_serie", "")
+    serie_conclusao = oficial.get("serie_conclusao", "")
+    if not serie_conclusao and ultima_serie:
+        serie_conclusao = f"{ultima_serie}º"
+
     return {
         "aluno": snapshot["aluno"],
-        "historico": snapshot["oficial"]["anos"],
-        "tem_2020": snapshot["oficial"]["tem_2020"],
-        "nascimento": snapshot["oficial"]["nascimento"],
-        "data_conclusao": snapshot["oficial"]["data_conclusao"],
-        "ultima_serie": snapshot["oficial"]["ultima_serie"],
-        "data_expedicao": snapshot["oficial"]["data_expedicao"],
-        "observacao_historico": snapshot["oficial"]["observacao_historico"],
+        "historico": oficial["anos"],
+        "tem_2020": oficial["tem_2020"],
+        "nascimento": oficial["nascimento"],
+        "data_conclusao": oficial["data_conclusao"],
+        "ultima_serie": ultima_serie,
+        "serie_conclusao": serie_conclusao,
+        "data_expedicao": oficial["data_expedicao"],
+        "observacao_historico": oficial["observacao_historico"],
     }
 
 
