@@ -150,6 +150,13 @@
       </label>
 
       <label class="field">
+        <span>{{ form.serie_conclusao.label }}</span>
+        {{ form.serie_conclusao }}
+        {{ form.serie_conclusao.errors }}
+        <small class="field-help">Opcional. Pode ser preenchida mesmo sem ano/série ativa no histórico.</small>
+      </label>
+
+      <label class="field">
         <span>{{ form.data_expedicao.label }}</span>
         {{ form.data_expedicao }}
         {{ form.data_expedicao.errors }}
