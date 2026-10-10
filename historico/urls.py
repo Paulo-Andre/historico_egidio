@@ -7,6 +7,12 @@ app_name = "historico"
 
 urlpatterns = [
     path("", views.inicio, name="inicio"),
+    path("aluno/novo/", views.gerenciar_aluno, name="aluno_novo"),
+    path(
+        "aluno/<int:codigo>/editar/",
+        views.gerenciar_aluno,
+        name="aluno_editar",
+    ),
     path("aluno/<int:codigo>/", views.aluno_detalhe, name="aluno"),
     path(
         "aluno/<int:codigo>/historico/",
