@@ -226,8 +226,11 @@
 
             <label class="field">
               <span>Resultado / Situação</span>
-              <input type="text" name="serie_{{ ano.serie }}_resultado"
-                     value="{{ ano.resultado }}" placeholder="Ex.: APROVADO">
+              <select name="serie_{{ ano.serie }}_resultado">
+                {% for valor, rotulo in ano.resultado_opcoes %}
+                  <option value="{{ valor }}"{% if valor == ano.resultado %} selected{% endif %}>{{ rotulo }}</option>
+                {% endfor %}
+              </select>
             </label>
 
             <label class="field field--wide">
@@ -244,8 +247,11 @@
 
             <label class="field field--small">
               <span>UF</span>
-              <input type="text" maxlength="2" name="serie_{{ ano.serie }}_uf"
-                     value="{{ ano.uf }}">
+              <select name="serie_{{ ano.serie }}_uf">
+                {% for valor, rotulo in ano.uf_opcoes %}
+                  <option value="{{ valor }}"{% if valor == ano.uf %} selected{% endif %}>{{ rotulo }}</option>
+                {% endfor %}
+              </select>
             </label>
           </div>
 
