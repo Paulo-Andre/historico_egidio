@@ -109,7 +109,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: fill;
+  object-fit: contain;
 }
 
 .certificate-section {
@@ -279,17 +279,12 @@
   font-weight: 500 !important;
 }
 
-.year-block {
-  break-inside: avoid;
-  page-break-inside: avoid;
-}
-
-.year-block tr {
+.official-history-table tbody tr {
   height: 5.52mm;
 }
 
-.year-block + .year-block tr:first-child > * {
-  border-top: .45pt solid var(--doc-black);
+.official-history-table tbody tr.year-group-start:not(:first-child) > * {
+  border-top: .55pt solid var(--doc-black);
 }
 
 .stage-cell {
