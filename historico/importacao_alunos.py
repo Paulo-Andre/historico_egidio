@@ -1,5 +1,6 @@
 import re
 import unicodedata
+import zipfile
 from collections import defaultdict
 from datetime import date, datetime
 from pathlib import Path
@@ -12,6 +13,8 @@ from .models import Aluno
 
 MAX_LINHAS = 20000
 MAX_COLUNAS = 80
+MAX_XLSX_DESCOMPACTADO = 120 * 1024 * 1024
+MAX_XLSX_ARQUIVOS_INTERNOS = 5000
 
 CABECALHOS = {
     "codigo": {
@@ -245,9 +248,38 @@ def _avaliar_cabecalho(valores):
     return score, mapeamento
 
 
+def _validar_xlsx_compactado(caminho):
+    try:
+        with zipfile.ZipFile(caminho) as arquivo:
+            membros = arquivo.infolist()
+            if len(membros) > MAX_XLSX_ARQUIVOS_INTERNOS:
+                raise ErroImportacao(
+                    "A planilha possui estrutura interna excessivamente grande."
+                )
+
+            total = sum(item.file_size for item in membros)
+            if total > MAX_XLSX_DESCOMPACTADO:
+                raise ErroImportacao(
+                    "A planilha excede o limite seguro após descompactação."
+                )
+
+            for item in membros:
+                if item.file_size > 25 * 1024 * 1024:
+                    raise ErroImportacao(
+                        "A planilha contém uma parte interna grande demais."
+                    )
+                if item.compress_size and item.file_size / item.compress_size > 200:
+                    raise ErroImportacao(
+                        "A planilha apresenta taxa de compressão insegura."
+                    )
+    except zipfile.BadZipFile as exc:
+        raise ErroImportacao("O arquivo XLSX está corrompido.") from exc
+
+
 def _linhas_xlsx(caminho):
     from openpyxl import load_workbook
 
+    _validar_xlsx_compactado(caminho)
     wb = load_workbook(caminho, read_only=True, data_only=True)
     try:
         for planilha in wb.worksheets:
