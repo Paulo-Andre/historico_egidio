@@ -298,6 +298,10 @@ def historico_oficial_do_aluno(aluno):
 
     return {
         "anos": anos,
+        "tem_2020": any(
+            item["registro"] is not None and item["registro"].ano == 2020
+            for item in anos
+        ),
         "nascimento": nascimento,
         "data_expedicao": data_expedicao,
         "data_conclusao": aluno.data_conclusao,
