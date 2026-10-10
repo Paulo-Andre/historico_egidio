@@ -8,6 +8,12 @@ app_name = "historico"
 urlpatterns = [
     path("", views.inicio, name="inicio"),
     path("aluno/novo/", views.gerenciar_aluno, name="aluno_novo"),
+    path("relatorios/", views.relatorios, name="relatorios"),
+    path(
+        "aluno/<int:codigo>/relatorio/",
+        views.relatorio_aluno,
+        name="relatorio_aluno",
+    ),
     path(
         "dados-extras/",
         views.dados_extras_anuais,
