@@ -35,6 +35,7 @@ class ConfiguracaoAno(models.Model):
     dias_letivos = models.CharField(max_length=30, blank=True)
     ch_sem_ingles = models.CharField(max_length=30, blank=True)
     media_minima = models.CharField(max_length=30, blank=True)
+    data_conclusao = models.CharField(max_length=30, blank=True)
     escola = models.CharField(max_length=255, blank=True)
     municipio = models.CharField(max_length=120, default="MONTES CLAROS")
     uf = models.CharField(max_length=2, default="MG")
