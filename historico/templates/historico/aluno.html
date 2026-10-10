@@ -3,7 +3,12 @@
 {% block content %}
 <div class="toolbar">
   <h1>{{ aluno.nome }}</h1>
-  <a class="btn primary" href="{% url 'historico:historico' aluno.codigo %}">VISUALIZAR / IMPRIMIR HISTÓRICO</a>
+  <div class="toolbar-actions">
+    {% if request.user.is_staff %}
+      <a class="btn" href="{% url 'historico:aluno_editar' aluno.codigo %}">EDITAR DADOS E NOTAS</a>
+    {% endif %}
+    <a class="btn primary" href="{% url 'historico:historico' aluno.codigo %}">VISUALIZAR / IMPRIMIR HISTÓRICO</a>
+  </div>
 </div>
 
 <section class="card grid">
