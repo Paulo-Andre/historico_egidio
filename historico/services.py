@@ -215,14 +215,18 @@ def historico_oficial_do_aluno(aluno):
     registros = list(
         aluno.registros_academicos
         .prefetch_related("notas")
-        .filter(serie__gte=1, serie__lte=5)
+        .filter(
+            serie__gte=1,
+            serie__lte=5,
+            ativo_no_historico=True,
+        )
         .order_by("serie", "ano", "id")
     )
 
     por_serie = {}
     for registro in registros:
-        # Em caso de duplicidade histórica, preserva o registro mais recente
-        # da série para o modelo oficial, sem apagar os demais do banco.
+        # Por regra de negócio existe no máximo uma relação ativa por série.
+        # O fallback mantém comportamento seguro caso exista dado legado.
         por_serie[registro.serie] = registro
 
     anos = []
