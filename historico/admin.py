@@ -122,9 +122,16 @@ class RegistroAcademicoAdmin(admin.ModelAdmin):
         "frequencia",
         "faltas",
         "resultado",
+        "ativo_no_historico",
         "matriz_curricular",
     )
-    list_filter = ("ano", "serie", "resultado", "matriz_curricular")
+    list_filter = (
+        "ativo_no_historico",
+        "ano",
+        "serie",
+        "resultado",
+        "matriz_curricular",
+    )
     search_fields = ("aluno__nome", "nome_original", "turma")
     autocomplete_fields = ("aluno", "matriz_curricular")
     inlines = [NotaInline]
