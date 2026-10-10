@@ -24,6 +24,14 @@ class SecurityAuditMiddleware:
         response["Permissions-Policy"] = (
             "camera=(), microphone=(), geolocation=(), payment=()"
         )
+        response["Cross-Origin-Resource-Policy"] = "same-origin"
+        content_type = response.get("Content-Type", "")
+        if (
+            content_type.startswith("text/html")
+            or content_type.startswith("application/json")
+        ):
+            response["Cache-Control"] = "no-store, max-age=0"
+            response["Pragma"] = "no-cache"
         response["Content-Security-Policy"] = (
             "default-src 'self'; "
             "base-uri 'self'; "
