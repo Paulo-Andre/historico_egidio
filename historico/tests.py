@@ -11,7 +11,17 @@ from .importacao_notas_pdf import (
     _itens_tabela_saeweb,
     aplicar_notas_pdf,
 )
-from .models import Aluno, ConfiguracaoAno, Nota, RegistroAcademico
+from .academico import indicadores_aluno, media_ponderada_registro
+from .models import (
+    Aluno,
+    AuditoriaEvento,
+    ConfiguracaoAno,
+    DocumentoHistorico,
+    MatrizComponente,
+    MatrizCurricularVersao,
+    Nota,
+    RegistroAcademico,
+)
 from .services import historico_oficial_do_aluno
 
 
@@ -852,3 +862,187 @@ class LimpezaTotalNotasAdminTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 403)
+
+
+
+class SegurancaAcessoTests(TestCase):
+    def setUp(self):
+        self.staff = get_user_model().objects.create_user(
+            username="secretaria-segura",
+            password="senha-teste",
+            is_staff=True,
+        )
+        self.user = get_user_model().objects.create_user(
+            username="usuario-comum",
+            password="senha-teste",
+            is_staff=False,
+        )
+        self.aluno = Aluno.objects.create(codigo=700, nome="ALUNO PROTEGIDO")
+
+    def test_dashboard_exige_autenticacao(self):
+        response = self.client.get(reverse("historico:inicio"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/admin/login/", response["Location"])
+
+    def test_usuario_comum_nao_pode_enumerar_alunos(self):
+        self.client.login(username="usuario-comum", password="senha-teste")
+        response = self.client.get(
+            reverse("historico:aluno", args=[self.aluno.codigo])
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_secretaria_acessa_aluno(self):
+        self.client.login(username="secretaria-segura", password="senha-teste")
+        response = self.client.get(
+            reverse("historico:aluno", args=[self.aluno.codigo])
+        )
+        self.assertEqual(response.status_code, 200)
+
+
+class DocumentoAutenticadoTests(TestCase):
+    def setUp(self):
+        self.staff = get_user_model().objects.create_user(
+            username="emissor",
+            password="senha-teste",
+            is_staff=True,
+        )
+        self.aluno = Aluno.objects.create(
+            codigo=701,
+            nome="MARIA AUTENTICADA",
+            nascimento="10/05/2015",
+            naturalidade="MONTES CLAROS",
+            nacionalidade="BRASILEIRA",
+            sexo="FEMININO",
+        )
+        registro = RegistroAcademico.objects.create(
+            aluno=self.aluno,
+            nome_original=self.aluno.nome,
+            ano=2025,
+            serie=5,
+            resultado="APROVADO",
+        )
+        Nota.objects.create(
+            registro=registro,
+            componente=Nota.MATEMATICA,
+            valor="90",
+        )
+
+    def test_emissao_cria_hash_snapshot_qr_e_auditoria(self):
+        self.client.login(username="emissor", password="senha-teste")
+        response = self.client.post(
+            reverse("historico:emitir_historico", args=[self.aluno.codigo])
+        )
+
+        self.assertEqual(response.status_code, 302)
+        documento = DocumentoHistorico.objects.get()
+        self.assertEqual(len(documento.hash_sha256), 64)
+        self.assertEqual(len(documento.assinatura_hmac), 64)
+        self.assertEqual(documento.snapshot["aluno"]["nome"], "MARIA AUTENTICADA")
+        self.assertTrue(
+            AuditoriaEvento.objects.filter(
+                acao="HISTORICO_EMITIDO",
+                objeto_id=str(documento.id),
+                usuario=self.staff,
+            ).exists()
+        )
+
+        pagina = self.client.get(response["Location"])
+        self.assertEqual(pagina.status_code, 200)
+        self.assertContains(pagina, "Emitido com QR")
+        self.assertContains(pagina, "data:image/svg+xml;base64")
+
+    def test_validacao_publica_mascara_dados(self):
+        self.client.login(username="emissor", password="senha-teste")
+        self.client.post(
+            reverse("historico:emitir_historico", args=[self.aluno.codigo])
+        )
+        documento = DocumentoHistorico.objects.get()
+        self.client.logout()
+
+        response = self.client.get(
+            reverse("historico:validar_documento", args=[documento.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Documento autêntico")
+        self.assertNotContains(response, "MARIA AUTENTICADA")
+        self.assertNotContains(response, "10/05/2015")
+
+    def test_snapshot_adulterado_falha_validacao(self):
+        self.client.login(username="emissor", password="senha-teste")
+        self.client.post(
+            reverse("historico:emitir_historico", args=[self.aluno.codigo])
+        )
+        documento = DocumentoHistorico.objects.get()
+        snapshot = documento.snapshot
+        snapshot["aluno"]["nome"] = "NOME ADULTERADO"
+        documento.snapshot = snapshot
+        documento.save(update_fields=["snapshot"])
+        self.client.logout()
+
+        response = self.client.get(
+            reverse("historico:validar_documento", args=[documento.id])
+        )
+        self.assertContains(response, "falha de integridade")
+
+
+class MatrizCurricularEAnaliseTests(TestCase):
+    def test_media_ponderada_respeita_versao_da_matriz(self):
+        aluno = Aluno.objects.create(codigo=702, nome="ALUNO MATRIZ")
+        matriz = MatrizCurricularVersao.objects.create(
+            codigo="AI-2025",
+            nome="Anos Iniciais 2025",
+            vigente_de=2025,
+            vigente_ate=2025,
+        )
+        MatrizComponente.objects.create(
+            matriz=matriz,
+            componente=Nota.MATEMATICA,
+            nome_exibicao="Matemática",
+            peso="2",
+            ordem=1,
+        )
+        MatrizComponente.objects.create(
+            matriz=matriz,
+            componente=Nota.HISTORIA,
+            nome_exibicao="História",
+            peso="1",
+            ordem=2,
+        )
+        registro = RegistroAcademico.objects.create(
+            aluno=aluno,
+            nome_original=aluno.nome,
+            ano=2025,
+            serie=5,
+            matriz_curricular=matriz,
+            frequencia="74%",
+            resultado="",
+        )
+        Nota.objects.create(
+            registro=registro,
+            componente=Nota.MATEMATICA,
+            valor="90",
+        )
+        Nota.objects.create(
+            registro=registro,
+            componente=Nota.HISTORIA,
+            valor="60",
+        )
+
+        media = media_ponderada_registro(registro)
+        indicadores = indicadores_aluno(aluno)
+
+        self.assertEqual(str(media), "80.00")
+        self.assertEqual(indicadores["anos_cursados"], 1)
+        self.assertTrue(
+            any(
+                alerta["tipo"] == "frequencia"
+                for alerta in indicadores["alertas"]
+            )
+        )
+        self.assertTrue(
+            any(
+                alerta["tipo"] == "resultado"
+                for alerta in indicadores["alertas"]
+            )
+        )
