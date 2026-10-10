@@ -108,6 +108,7 @@ def salvar_historico(request, codigo):
         "sexo",
     }
     campos_registro = {
+        "ano",
         "faltas",
         "frequencia",
         "carga_horaria",
@@ -118,6 +119,8 @@ def salvar_historico(request, codigo):
         "observacao",
     }
     componentes_validos = {codigo for codigo, _ in Nota.COMPONENTES}
+
+    novos_criados = 0
 
     with transaction.atomic():
         dados_aluno = payload.get("aluno") or {}
@@ -158,15 +161,31 @@ def salvar_historico(request, codigo):
             for campo in campos_registro:
                 if campo not in dados_registro:
                     continue
-                setattr(
-                    registro,
-                    campo,
-                    _texto_limitado(
-                        RegistroAcademico,
+
+                if campo == "ano":
+                    try:
+                        valor_ano = int(str(dados_registro[campo]).strip())
+                    except (TypeError, ValueError):
+                        return JsonResponse(
+                            {"ok": False, "erro": "Ano letivo inválido."},
+                            status=400,
+                        )
+                    if valor_ano < 1000 or valor_ano > 9999:
+                        return JsonResponse(
+                            {"ok": False, "erro": "Informe o ano com 4 dígitos."},
+                            status=400,
+                        )
+                    registro.ano = valor_ano
+                else:
+                    setattr(
+                        registro,
                         campo,
-                        dados_registro[campo],
-                    ),
-                )
+                        _texto_limitado(
+                            RegistroAcademico,
+                            campo,
+                            dados_registro[campo],
+                        ),
+                    )
                 campos_alterados.append(campo)
 
             if campos_alterados:
@@ -197,4 +216,31 @@ def salvar_historico(request, codigo):
                     },
                 )
 
-    return JsonResponse({"ok": True})
+        for item in payload.get("novos_registros") or []:
+            try:
+                serie = int(item.get("serie"))
+                ano = int(str(item.get("ano", "")).strip())
+            except (TypeError, ValueError):
+                continue
+
+            if serie < 1 or serie > 5 or ano < 1000 or ano > 9999:
+                continue
+
+            ja_existe = (
+                aluno.registros_academicos
+                .select_for_update()
+                .filter(serie=serie)
+                .exists()
+            )
+            if ja_existe:
+                continue
+
+            RegistroAcademico.objects.create(
+                aluno=aluno,
+                nome_original=aluno.nome,
+                ano=ano,
+                serie=serie,
+            )
+            novos_criados += 1
+
+    return JsonResponse({"ok": True, "recarregar": novos_criados > 0})
