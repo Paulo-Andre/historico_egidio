@@ -4,23 +4,24 @@
 {% block title %}Dashboard · Histórico Escolar{% endblock %}
 
 {% block content %}
-<section class="hero">
-  <div class="toolbar">
-    <div>
-      <span class="eyebrow" style="color:#bbf7d0">SECRETARIA ACADÊMICA</span>
-      <h1>Histórico Escolar</h1>
-      <p>Consulta, integridade documental, importações e acompanhamento acadêmico.</p>
-    </div>
-    <div class="toolbar-actions">
-      <a class="btn" href="{% url 'historico:importar_lista_alunos' %}">Atualizar lista</a>
-      <a class="btn" href="{% url 'historico:importar_notas_pdf' %}">Importar notas PDF</a>
-      <a class="btn" href="{% url 'historico:dados_extras_anuais' %}">Dados por ano</a>
-      <a class="btn" href="{% url 'historico:integridade_dados' %}">Integridade</a>
-      <a class="btn" href="{% url 'historico:aluno_novo' %}">Novo aluno</a>
-    </div>
+<section class="dashboard-heading">
+  <div>
+    <span class="eyebrow">SECRETARIA ACADÊMICA</span>
+    <h1>Histórico Escolar</h1>
+    <p>Cadastros, vida escolar, relatórios, importações e conferência dos dados acadêmicos em um só lugar.</p>
   </div>
+  <div class="dashboard-heading__actions">
+    <a class="btn" href="{% url 'historico:relatorios' %}">Emitir relatório</a>
+    <a class="btn primary" href="{% url 'historico:aluno_novo' %}">Novo aluno</a>
+  </div>
+</section>
 
-  <form method="get" role="search">
+<section class="dashboard-search-card">
+  <div class="dashboard-search-copy">
+    <strong>Localizar aluno</strong>
+    <span>Pesquise pelo nome ou código para abrir o prontuário e emitir documentos.</span>
+  </div>
+  <form method="get" role="search" class="dashboard-search-form">
     <input
       name="q"
       value="{{ q }}"
@@ -29,8 +30,41 @@
       autocomplete="off"
       autofocus
     >
-    <button>Localizar aluno</button>
+    <button class="btn primary" type="submit">Pesquisar</button>
   </form>
+</section>
+
+<section class="quick-actions" aria-label="Ações rápidas">
+  <a class="quick-action-card" href="{% url 'historico:relatorios' %}">
+    <span class="quick-action-card__icon">R</span>
+    <strong>Relatórios</strong>
+    <small>Emitir relatório completo do aluno.</small>
+  </a>
+  <a class="quick-action-card" href="{% url 'historico:aluno_novo' %}">
+    <span class="quick-action-card__icon">+</span>
+    <strong>Novo aluno</strong>
+    <small>Cadastrar aluno e vida escolar.</small>
+  </a>
+  <a class="quick-action-card" href="{% url 'historico:importar_lista_alunos' %}">
+    <span class="quick-action-card__icon">L</span>
+    <strong>Atualizar lista</strong>
+    <small>Importar ou atualizar cadastros por planilha.</small>
+  </a>
+  <a class="quick-action-card" href="{% url 'historico:importar_notas_pdf' %}">
+    <span class="quick-action-card__icon">N</span>
+    <strong>Importar notas</strong>
+    <small>Processar ATA/PDF e preservar relações de turma.</small>
+  </a>
+  <a class="quick-action-card" href="{% url 'historico:dados_extras_anuais' %}">
+    <span class="quick-action-card__icon">A</span>
+    <strong>Dados por ano</strong>
+    <small>Configurar carga horária e regras anuais.</small>
+  </a>
+  <a class="quick-action-card" href="{% url 'historico:integridade_dados' %}">
+    <span class="quick-action-card__icon">✓</span>
+    <strong>Integridade</strong>
+    <small>Conferir cadastros e registros pendentes.</small>
+  </a>
 </section>
 
 <section class="dashboard-metrics" aria-label="Indicadores do sistema">
@@ -39,81 +73,90 @@
     <strong>{{ painel.alunos_total }}</strong>
   </div>
   <div class="metric-card">
-    <span>Registros acadêmicos</span>
+    <span>Relações acadêmicas</span>
     <strong>{{ painel.registros_total }}</strong>
+  </div>
+  <div class="metric-card">
+    <span>Relações ativas</span>
+    <strong>{{ painel.relacoes_ativas }}</strong>
+  </div>
+  <div class="metric-card">
+    <span>Relações inativas</span>
+    <strong>{{ painel.relacoes_inativas }}</strong>
   </div>
   <div class="metric-card">
     <span>Notas armazenadas</span>
     <strong>{{ painel.notas_total }}</strong>
-  </div>
-  <div class="metric-card">
-    <span>Históricos autenticados</span>
-    <strong>{{ painel.documentos_total }}</strong>
   </div>
   <div class="metric-card {% if painel.alunos_incompletos %}is-warning{% endif %}">
     <span>Cadastros incompletos</span>
     <strong>{{ painel.alunos_incompletos }}</strong>
   </div>
   <div class="metric-card {% if painel.registros_sem_notas %}is-warning{% endif %}">
-    <span>Anos sem notas</span>
+    <span>Relações sem notas</span>
     <strong>{{ painel.registros_sem_notas }}</strong>
   </div>
   <div class="metric-card {% if painel.registros_sem_matriz %}is-warning{% endif %}">
-    <span>Registros sem matriz</span>
+    <span>Sem matriz curricular</span>
     <strong>{{ painel.registros_sem_matriz }}</strong>
-  </div>
-  <div class="metric-card">
-    <span>Proteção</span>
-    <strong style="font-size:16px">Auditoria + SHA-256</strong>
   </div>
 </section>
 
 {% if q %}
 <section class="card">
-  <div class="toolbar">
+  <div class="section-title-row">
     <div>
       <h2>Resultado da pesquisa</h2>
-      <p style="color:var(--muted);margin:0">Nascimento é mascarado na listagem para reduzir exposição desnecessária.</p>
+      <p>Nascimento é mascarado nesta listagem para reduzir exposição desnecessária.</p>
     </div>
+    <a class="btn" href="{% url 'historico:relatorios' %}?q={{ q|urlencode }}">Abrir em relatórios</a>
   </div>
 
   {% if alunos %}
-  <div style="overflow-x:auto">
+  <div class="table-scroll">
     <table>
       <thead>
-        <tr><th>Cód.</th><th>Nome</th><th>Nascimento</th><th></th></tr>
+        <tr><th>Cód.</th><th>Nome</th><th>Nascimento</th><th class="actions-column">Ações</th></tr>
       </thead>
       <tbody>
       {% for a in alunos %}
         <tr>
           <td>{{ a.codigo }}</td>
-          <td>{{ a.nome }}</td>
+          <td><strong>{{ a.nome }}</strong></td>
           <td>{{ a.nascimento|mask_birth }}</td>
-          <td><a class="btn" href="{% url 'historico:aluno' a.codigo %}">Abrir</a></td>
+          <td>
+            <div class="table-actions">
+              <a class="btn btn-small" href="{% url 'historico:aluno' a.codigo %}">Prontuário</a>
+              <a class="btn primary btn-small" href="{% url 'historico:relatorio_aluno' a.codigo %}">Relatório</a>
+            </div>
+          </td>
         </tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
   {% else %}
-    <p>Nenhum aluno encontrado.</p>
+    <div class="empty-state">
+      <strong>Nenhum aluno encontrado.</strong>
+      <span>Confira o nome ou código informado.</span>
+    </div>
   {% endif %}
 </section>
 {% endif %}
 
 <section class="card">
-  <div class="toolbar">
+  <div class="section-title-row">
     <div>
-      <h2>Emissões autenticadas recentes</h2>
-      <p style="color:var(--muted);margin:0">Cada emissão possui snapshot, SHA-256, assinatura HMAC e QR Code público.</p>
+      <h2>Históricos emitidos recentemente</h2>
+      <p>Emissões preservadas com snapshot e verificação de integridade.</p>
     </div>
   </div>
 
   {% if painel.documentos_recentes %}
-  <div style="overflow-x:auto">
+  <div class="table-scroll">
     <table>
       <thead>
-        <tr><th>Data</th><th>Aluno</th><th>Emitido por</th><th>Hash</th><th>Status</th><th></th></tr>
+        <tr><th>Data</th><th>Aluno</th><th>Emitido por</th><th>Hash</th><th>Status</th><th class="actions-column">Ação</th></tr>
       </thead>
       <tbody>
       {% for doc in painel.documentos_recentes %}
@@ -124,7 +167,7 @@
           <td><code>{{ doc.hash_sha256|slice:":12" }}…</code></td>
           <td>{% if doc.revogado %}Revogado{% else %}Válido{% endif %}</td>
           <td>
-            <a class="btn" href="{% url 'historico:historico' doc.aluno.codigo %}?documento={{ doc.id }}">Abrir</a>
+            <a class="btn btn-small" href="{% url 'historico:historico' doc.aluno.codigo %}?documento={{ doc.id }}">Abrir</a>
           </td>
         </tr>
       {% endfor %}
@@ -132,7 +175,10 @@
     </table>
   </div>
   {% else %}
-    <p>Nenhum histórico autenticado emitido ainda.</p>
+    <div class="empty-state">
+      <strong>Nenhum histórico emitido ainda.</strong>
+      <span>As emissões aparecerão aqui para conferência.</span>
+    </div>
   {% endif %}
 </section>
 {% endblock %}
