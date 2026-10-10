@@ -194,6 +194,10 @@ def inicio(request):
 def _diretorio_importacoes():
     diretorio = Path(settings.DATA_DIR) / "importacoes_alunos"
     diretorio.mkdir(parents=True, exist_ok=True)
+    try:
+        diretorio.chmod(0o700)
+    except OSError:
+        pass
 
     limite = time.time() - (24 * 60 * 60)
     for arquivo in diretorio.glob("*"):
@@ -240,6 +244,10 @@ def _limpar_importacao_da_sessao(request):
 def _diretorio_importacoes_notas():
     diretorio = Path(settings.DATA_DIR) / "importacoes_notas_pdf"
     diretorio.mkdir(parents=True, exist_ok=True)
+    try:
+        diretorio.chmod(0o700)
+    except OSError:
+        pass
 
     limite = time.time() - (24 * 60 * 60)
     for arquivo in diretorio.glob("*.pdf"):
@@ -340,6 +348,10 @@ def importar_notas_pdf(request):
                 with caminho.open("wb") as destino:
                     for bloco in arquivo.chunks():
                         destino.write(bloco)
+                try:
+                    caminho.chmod(0o600)
+                except OSError:
+                    pass
 
                 try:
                     leitura = extrair_notas_pdf(caminho)
@@ -450,6 +462,10 @@ def importar_lista_alunos(request):
                 with caminho.open("wb") as destino:
                     for bloco in arquivo.chunks():
                         destino.write(bloco)
+                try:
+                    caminho.chmod(0o600)
+                except OSError:
+                    pass
 
                 try:
                     leitura = ler_lista_alunos(caminho)
@@ -519,7 +535,7 @@ def dados_extras_anuais(request):
             objetos = formset.save()
             registrar_auditoria(
                 request,
-                "ALUNO_ALTERADO",
+                "REQUEST_SENSIVEL",
                 entidade="ConfiguracaoAno",
                 objeto_id="lote",
                 objeto_repr="Configurações anuais",
