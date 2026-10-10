@@ -948,7 +948,7 @@ class DocumentoAutenticadoTests(TestCase):
 
         pagina = self.client.get(response["Location"])
         self.assertEqual(pagina.status_code, 200)
-        self.assertContains(pagina, "Emitido com QR")
+        self.assertContains(pagina, "Histórico autenticado")
         self.assertContains(pagina, "data:image/svg+xml;base64")
 
     def test_validacao_publica_mascara_dados(self):
