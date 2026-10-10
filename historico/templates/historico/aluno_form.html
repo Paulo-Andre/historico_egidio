@@ -207,7 +207,14 @@
             <label class="field">
               <span>Turma</span>
               <input type="text" name="serie_{{ ano.serie }}_turma"
-                     value="{{ ano.turma }}" placeholder="Ex.: A">
+                     value="{{ ano.turma }}" placeholder="Ex.: 5º ano Azul">
+            </label>
+
+            <label class="field field--wide">
+              <span>Professor(a) responsável</span>
+              <input type="text" name="serie_{{ ano.serie }}_professor_responsavel"
+                     value="{{ ano.professor_responsavel }}"
+                     placeholder="Nome do(a) professor(a) da turma">
             </label>
 
             <label class="field">
