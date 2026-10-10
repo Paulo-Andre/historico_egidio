@@ -243,9 +243,95 @@ def indicadores_aluno(aluno):
     }
 
 
+def relatorio_completo_aluno(aluno):
+    registros = list(
+        aluno.registros_academicos
+        .select_related("matriz_curricular")
+        .prefetch_related("notas", "matriz_curricular__componentes")
+        .order_by("ano", "serie", "turma", "id")
+    )
+
+    anos = {registro.ano for registro in registros}
+    configuracoes = {
+        item.ano: item
+        for item in ConfiguracaoAno.objects.filter(ano__in=anos)
+    }
+    rotulos = dict(Nota.COMPONENTES)
+    ordem_componentes = [
+        Nota.LINGUA_PORTUGUESA,
+        Nota.ARTE,
+        Nota.EDUCACAO_FISICA,
+        Nota.LINGUA_INGLESA,
+        Nota.MATEMATICA,
+        Nota.CIENCIAS,
+        Nota.GEOGRAFIA,
+        Nota.HISTORIA,
+        Nota.EDUCACAO_RELIGIOSA,
+    ]
+
+    relacoes = []
+    total_notas_preenchidas = 0
+
+    for registro in registros:
+        config = configuracoes.get(registro.ano)
+        notas_db = {
+            nota.componente: nota
+            for nota in registro.notas.all()
+        }
+        notas = []
+        for componente in ordem_componentes:
+            nota = notas_db.get(componente)
+            valor = nota.valor.strip() if nota and nota.valor else ""
+            if valor:
+                total_notas_preenchidas += 1
+            notas.append(
+                {
+                    "componente": componente,
+                    "rotulo": rotulos.get(componente, componente),
+                    "valor": valor,
+                    "carga_horaria": (
+                        nota.carga_horaria.strip()
+                        if nota and nota.carga_horaria
+                        else ""
+                    ),
+                }
+            )
+
+        relacoes.append(
+            {
+                "registro": registro,
+                "config": config,
+                "notas": notas,
+                "media": media_ponderada_registro(registro),
+                "dias_letivos": config.dias_letivos if config else "",
+                "media_minima": config.media_minima if config else "",
+                "carga_horaria": (
+                    registro.carga_horaria
+                    or (config.ch_anual if config else "")
+                ),
+            }
+        )
+
+    return {
+        "relacoes": relacoes,
+        "total_relacoes": len(relacoes),
+        "relacoes_ativas": sum(
+            1 for item in registros if item.ativo_no_historico
+        ),
+        "relacoes_inativas": sum(
+            1 for item in registros if not item.ativo_no_historico
+        ),
+        "total_notas_preenchidas": total_notas_preenchidas,
+    }
+
+
 def painel_geral():
     alunos_total = Aluno.objects.count()
     registros_total = RegistroAcademico.objects.count()
+    relacoes_ativas = RegistroAcademico.objects.filter(
+        ativo_no_historico=True
+    ).count()
+    relacoes_inativas = registros_total - relacoes_ativas
     notas_total = Nota.objects.count()
     documentos_total = DocumentoHistorico.objects.count()
 
@@ -277,6 +363,8 @@ def painel_geral():
     return {
         "alunos_total": alunos_total,
         "registros_total": registros_total,
+        "relacoes_ativas": relacoes_ativas,
+        "relacoes_inativas": relacoes_inativas,
         "notas_total": notas_total,
         "documentos_total": documentos_total,
         "alunos_incompletos": alunos_incompletos,
