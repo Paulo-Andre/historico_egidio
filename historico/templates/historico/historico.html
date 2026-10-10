@@ -4,7 +4,7 @@
 {% block title %}Histórico Escolar — {{ aluno.nome }}{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'historico/css/document.css' %}?v=20261010-07">
+<link rel="stylesheet" href="{% static 'historico/css/document.css' %}?v=20261010-08">
 {% endblock %}
 
 {% block content %}
@@ -12,8 +12,12 @@
 
 <section class="editor-toolbar" aria-label="Ferramentas do histórico">
   <div class="editor-toolbar__status">
-    <strong>Histórico oficial</strong>
-    {% if can_edit %}
+    <strong>
+      {% if documento %}Histórico autenticado{% else %}Prévia do histórico{% endif %}
+    </strong>
+    {% if documento %}
+      <span class="save-status">SHA-256 {{ documento.hash_sha256|slice:":12" }}…</span>
+    {% elif can_edit %}
       <span class="save-status" data-save-status>Pronto para editar</span>
     {% else %}
       <span class="save-status">Visualização</span>
@@ -21,8 +25,15 @@
   </div>
   <div class="editor-toolbar__actions">
     <a href="{% url 'historico:aluno' aluno.codigo %}">Voltar</a>
-    {% if can_edit %}
+    {% if can_edit and not documento %}
       <button type="button" class="primary" data-action="save">Salvar</button>
+      <form method="post" action="{% url 'historico:emitir_historico' aluno.codigo %}" class="emit-form">
+        {% csrf_token %}
+        <button type="submit" class="primary">Emitir com QR / SHA-256</button>
+      </form>
+    {% endif %}
+    {% if documento %}
+      <a href="{% url 'historico:validar_documento' documento.id %}" target="_blank" rel="noopener">Validar documento</a>
     {% endif %}
     <button type="button" onclick="window.print()">Imprimir / PDF</button>
   </div>
@@ -266,7 +277,7 @@
              data-multiline="1">{% if observacao_historico %}{{ observacao_historico }}{% else %}*INFORMAMOS QUE O(A) ALUNO(A) ENCONTRA-SE APTO(A) À CONTINUIDADE DOS ESTUDOS.{% endif %}</div>
       </section>
 
-      <footer class="official-footer">
+      <footer class="official-footer{% if documento %} official-footer--authenticated{% endif %}">
         <div class="signature signature-left">
           <span class="signature-line"></span>
           ASSINATURA DO(A) SECRETÁRIO(A) Nº REG. OU AUTORIZAÇÃO
@@ -279,6 +290,14 @@
           <strong>MONTES CLAROS/MG - <span contenteditable="{{ can_edit|yesno:'true,false' }}" data-model="aluno" data-field="data_expedicao">{{ data_expedicao }}</span></strong>
           <span class="issue-date__caption">MUNICÍPIO E DATA DE EXPEDIÇÃO</span>
         </div>
+
+        {% if documento %}
+        <div class="authenticity-badge" aria-label="Validação digital do documento">
+          <img src="{{ qr_code_data_uri }}" alt="QR Code para validação pública">
+          <span>VALIDAR</span>
+          <code>{{ documento.hash_sha256|slice:":8" }}</code>
+        </div>
+        {% endif %}
       </footer>
     </div>
 
@@ -286,6 +305,10 @@
       <span>Média numérica: <strong data-summary-average>—</strong></span>
       <span>Carga horária: <strong data-summary-load>—</strong></span>
       <span>Alertas: <strong data-summary-alerts>0</strong></span>
+      {% if documento %}
+        <span>Documento: <strong>{{ documento.id }}</strong></span>
+        <span>Status: <strong>{% if validacao_documento.valido %}VÁLIDO{% elif documento.revogado %}REVOGADO{% else %}INTEGRIDADE INVÁLIDA{% endif %}</strong></span>
+      {% endif %}
     </section>
   </article>
 </div>
