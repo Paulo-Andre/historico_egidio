@@ -754,11 +754,63 @@
     font-size: 6.75pt !important;
   }
 
-  .official-page-border,
-  .official-history-table,
+  /* Bordas reforçadas em unidade física.
+     Evita que linhas finas desapareçam na rasterização do navegador/PDF. */
+  .certificate-section {
+    border: .25mm solid #000 !important;
+  }
+
+  .certificate-section h1 {
+    border-bottom: .22mm solid #000 !important;
+  }
+
+  .certificate-table .value {
+    border-bottom: .22mm solid #000 !important;
+  }
+
+  .history-frame {
+    border: .25mm solid #000 !important;
+  }
+
+  .history-left {
+    border-right: .25mm solid #000 !important;
+  }
+
+  .official-history-table {
+    border-collapse: collapse !important;
+    border: .25mm solid #000 !important;
+  }
+
   .official-history-table th,
   .official-history-table td {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    border: .25mm solid #000 !important;
+  }
+
+  .official-history-table tbody tr.year-group-start:not(:first-child) > * {
+    border-top: .25mm solid #000 !important;
+  }
+
+  .bottom-observation {
+    border-top: .25mm solid #000 !important;
+    border-bottom: .25mm solid #000 !important;
+  }
+
+  .signature-line,
+  .issue-date strong {
+    border-top: .25mm solid #000 !important;
+  }
+
+  .official-page-border,
+  .certificate-section,
+  .certificate-table,
+  .history-frame,
+  .official-history-table,
+  .official-history-table th,
+  .official-history-table td,
+  .bottom-observation,
+  .signature-line,
+  .issue-date strong {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
