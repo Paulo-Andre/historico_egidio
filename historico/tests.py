@@ -6,7 +6,11 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
-from .importacao_notas_pdf import aplicar_notas_pdf
+from .importacao_notas_pdf import (
+    _contexto_ata_saeweb,
+    _itens_tabela_saeweb,
+    aplicar_notas_pdf,
+)
 from .models import Aluno, ConfiguracaoAno, Nota, RegistroAcademico
 from .services import historico_oficial_do_aluno
 
@@ -554,6 +558,75 @@ class ImportacaoListaAlunosTests(TestCase):
         self.assertEqual(aluno.pai, "PAI SEM CABEÇALHO")
         self.assertEqual(aluno.mae, "MÃE SEM CABEÇALHO")
 
+
+
+class ImportacaoNotasPdfSaewebTests(TestCase):
+    def test_contexto_saeweb_extrai_ano_turma_e_serie(self):
+        texto = (
+            "ATA DE RESULTADO FINAL DE APROVEITAMENTO - ANO: 2025\n"
+            "Turma: 2º ano Laranja Ensino: ENS. FUND. ANOS INICIAIS "
+            "Série/Etapa: 2º Ano Turno: Manhã Dias letivos: 200"
+        )
+
+        contexto = _contexto_ata_saeweb(texto)
+
+        self.assertEqual(contexto["ano"], 2025)
+        self.assertEqual(contexto["turma"], "2º ano Laranja")
+        self.assertEqual(contexto["serie"], 2)
+
+    def test_contexto_saeweb_e_mantido_na_pagina_de_continuacao(self):
+        anterior = {
+            "ano": 2025,
+            "turma": "5° Ano Verde",
+            "serie": 5,
+        }
+
+        contexto = _contexto_ata_saeweb(
+            "Nº Estudante N F RF ... Situação Final",
+            anterior,
+        )
+
+        self.assertEqual(contexto, anterior)
+
+    def test_tabela_saeweb_mapeia_notas_corretamente(self):
+        cabecalho = [""] * 36
+        cabecalho[0] = "Nº"
+        cabecalho[1] = "Estudante"
+        cabecalho[35] = "Situação Final"
+
+        aluno = ["-"] * 36
+        aluno[0] = "1"
+        aluno[1] = "Agatha Gabrielly Costa Freitas"
+        aluno[5] = "67.5"
+        aluno[11] = "71"
+        aluno[14] = "100"
+        aluno[17] = "91"
+        aluno[20] = "65"
+        aluno[23] = "72"
+        aluno[26] = "83.5"
+        aluno[29] = "81.5"
+        aluno[32] = "80"
+        aluno[35] = "Aprovado em Progressão\nContinuada"
+
+        itens = _itens_tabela_saeweb(
+            [cabecalho, aluno],
+            {
+                "ano": 2025,
+                "turma": "2º ano Laranja",
+                "serie": 2,
+            },
+            1,
+        )
+
+        self.assertEqual(len(itens), 1)
+        item = itens[0]
+        self.assertEqual(item["nome"], "Agatha Gabrielly Costa Freitas")
+        self.assertEqual(item["ano"], 2025)
+        self.assertEqual(item["serie"], 2)
+        self.assertEqual(item["turma"], "2º ano Laranja")
+        self.assertEqual(item["notas"][Nota.LINGUA_PORTUGUESA], "67.5")
+        self.assertEqual(item["notas"][Nota.MATEMATICA], "65")
+        self.assertEqual(item["notas"][Nota.EDUCACAO_RELIGIOSA], "80")
 
 
 class ImportacaoNotasPdfPreservacaoHistoricoTests(TestCase):
