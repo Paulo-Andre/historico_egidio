@@ -1,0 +1,228 @@
+{% extends 'historico/base.html' %}
+{% load static %}
+
+{% block title %}Importar notas por PDF{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'historico/css/importacao-alunos.css' %}?v=20261010-03">
+{% endblock %}
+
+{% block content %}
+<section class="import-heading">
+  <div>
+    <span class="eyebrow">ATUALIZAÇÃO ACADÊMICA</span>
+    <h1>Importar notas por PDF</h1>
+    <p>
+      Envie um PDF com nome do aluno, turma, ano letivo, série e notas.
+      O sistema associa cada nota ao registro daquele ano e série, preservando
+      as notas dos demais anos do aluno.
+    </p>
+  </div>
+  <a class="btn" href="{% url 'historico:inicio' %}">Voltar</a>
+</section>
+
+<div class="safety-banner">
+  <strong>Histórico preservado.</strong>
+  <span>
+    A nota de 2025, por exemplo, não substitui a nota de 2024. Cada disciplina
+    fica vinculada ao registro acadêmico do respectivo ano/série.
+  </span>
+</div>
+
+{% if erro %}
+<div class="import-notice import-notice--error">
+  <strong>Não foi possível processar o PDF.</strong>
+  <span>{{ erro }}</span>
+</div>
+{% endif %}
+
+{% if resultado %}
+<section class="result-card">
+  <div class="result-card__icon">✓</div>
+  <div>
+    <h2>Importação concluída</h2>
+    <p>Os dados reconhecidos foram associados aos respectivos anos escolares.</p>
+    <div class="result-stats">
+      <span><strong>{{ resultado.alunos_criados }}</strong> alunos criados</span>
+      <span><strong>{{ resultado.alunos_localizados }}</strong> alunos localizados</span>
+      <span><strong>{{ resultado.registros_criados }}</strong> anos criados</span>
+      <span><strong>{{ resultado.registros_atualizados }}</strong> anos localizados</span>
+      <span><strong>{{ resultado.notas_atualizadas }}</strong> notas processadas</span>
+      <span><strong>{{ resultado.conflitos|length }}</strong> conflitos</span>
+    </div>
+  </div>
+</section>
+
+{% if resultado.conflitos %}
+<section class="import-card">
+  <h2>Itens não aplicados</h2>
+  <div class="table-wrap">
+    <table class="preview-table">
+      <thead><tr><th>Aluno</th><th>Ano</th><th>Série</th><th>Motivo</th></tr></thead>
+      <tbody>
+      {% for item in resultado.conflitos %}
+        <tr>
+          <td>{{ item.nome }}</td>
+          <td>{{ item.ano }}</td>
+          <td>{{ item.serie }}º</td>
+          <td>{{ item.erro }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<section class="import-card import-card--compact">
+  <a class="btn primary" href="{% url 'historico:importar_notas_pdf' %}">Importar outro PDF</a>
+</section>
+
+{% else %}
+<section class="import-card">
+  <div class="import-card__heading">
+    <div>
+      <span class="step-number">01</span>
+      <div>
+        <h2>Selecione o PDF</h2>
+        <p>O PDF deve possuir texto selecionável e conter dados suficientes para identificar ano, série e notas.</p>
+      </div>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="upload-form">
+    {% csrf_token %}
+    <input type="hidden" name="acao" value="previsualizar">
+
+    <label class="upload-area">
+      <div class="upload-area__icon">PDF</div>
+      <div>
+        <strong>Escolher PDF de notas</strong>
+        <span id="arquivo-selecionado">Nenhum arquivo selecionado</span>
+        <small>Limite de 25 MB. Nada é alterado antes da confirmação.</small>
+      </div>
+      {{ formulario.arquivo }}
+    </label>
+    {{ formulario.arquivo.errors }}
+
+    <div class="upload-actions">
+      <button type="submit" class="btn primary" id="btn-analisar">Analisar PDF</button>
+    </div>
+  </form>
+</section>
+
+{% if previa %}
+<section class="import-card">
+  <div class="import-card__heading">
+    <div>
+      <span class="step-number">02</span>
+      <div>
+        <h2>Prévia da importação</h2>
+        <p>{{ arquivo_nome }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="preview-stats">
+    <div><span>Registros</span><strong>{{ previa.total }}</strong></div>
+    <div><span>Alunos existentes</span><strong>{{ previa.alunos_existentes }}</strong></div>
+    <div><span>Novos alunos</span><strong>{{ previa.alunos_novos }}</strong></div>
+    <div><span>Novos anos</span><strong>{{ previa.registros_novos }}</strong></div>
+  </div>
+
+  <div class="apply-warning">
+    <strong>Regra importante:</strong>
+    <span>
+      o sistema procura o aluno pelo nome. Cada conjunto de notas é gravado no
+      ano e série informados no PDF. Notas de outros anos permanecem intactas.
+      Se o aluno não existir, será criado no cadastro de alunos.
+    </span>
+  </div>
+
+  <div class="table-wrap">
+    <table class="preview-table">
+      <thead>
+        <tr>
+          <th>Aluno</th>
+          <th>Turma</th>
+          <th>Ano</th>
+          <th>Série</th>
+          <th>Notas</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for item in previa.itens|slice:":60" %}
+        <tr>
+          <td>{{ item.nome }}</td>
+          <td>{{ item.turma|default:"—" }}</td>
+          <td>{{ item.ano }}</td>
+          <td>{{ item.serie }}º</td>
+          <td>
+            <details>
+              <summary>{{ item.quantidade_notas }} nota(s)</summary>
+              {% for nota in item.notas_legiveis %}
+                <div>{{ nota.componente }}: {{ nota.valor }}</div>
+              {% endfor %}
+            </details>
+          </td>
+          <td>
+            {% if item.status == "atualizar" %}
+              <span class="status-badge status-badge--update">Atualizar este ano</span>
+            {% elif item.status == "novo_registro" %}
+              <span class="status-badge status-badge--new">Criar ano escolar</span>
+            {% elif item.status == "novo_aluno" %}
+              <span class="status-badge status-badge--new">Criar aluno + ano</span>
+            {% else %}
+              <span class="status-badge status-badge--warning">Conferir</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="confirm-actions">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="acao" value="cancelar">
+      <button type="submit" class="btn">Cancelar</button>
+    </form>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="acao" value="aplicar">
+      <button type="submit" class="btn primary">Aplicar notas ao banco</button>
+    </form>
+  </div>
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const input = document.querySelector('input[type="file"][name="arquivo"]');
+  const nome = document.getElementById("arquivo-selecionado");
+  const form = document.querySelector(".upload-form");
+  const botao = document.getElementById("btn-analisar");
+
+  if (input && nome) {
+    input.addEventListener("change", function () {
+      nome.textContent = input.files && input.files.length
+        ? input.files[0].name
+        : "Nenhum arquivo selecionado";
+    });
+  }
+
+  if (form && botao) {
+    form.addEventListener("submit", function () {
+      if (!input || !input.files || !input.files.length) return;
+      botao.disabled = true;
+      botao.textContent = "Carregando e analisando...";
+    });
+  }
+})();
+</script>
+{% endblock %}
