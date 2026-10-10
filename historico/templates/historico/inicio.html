@@ -1,50 +1,137 @@
 {% extends 'historico/base.html' %}
+{% load privacy %}
+
+{% block title %}Dashboard · Histórico Escolar{% endblock %}
+
 {% block content %}
 <section class="hero">
   <div class="toolbar">
     <div>
-      <h1>Emissão de Histórico Escolar</h1>
-      <p>Sistema web com banco de dados próprio.</p>
+      <span class="eyebrow" style="color:#bbf7d0">SECRETARIA ACADÊMICA</span>
+      <h1>Histórico Escolar</h1>
+      <p>Consulta, integridade documental, importações e acompanhamento acadêmico.</p>
     </div>
-    {% if request.user.is_staff %}
-      <div class="toolbar-actions">
-        <a class="btn" href="{% url 'historico:importar_lista_alunos' %}">ATUALIZAR LISTA</a>
-        <a class="btn" href="{% url 'historico:importar_notas_pdf' %}">IMPORTAR NOTAS PDF</a>
-        <a class="btn" href="{% url 'historico:dados_extras_anuais' %}">DADOS POR ANO</a>
-        <a class="btn" href="{% url 'historico:aluno_novo' %}">CADASTRAR NOVO ALUNO</a>
-      </div>
-    {% endif %}
+    <div class="toolbar-actions">
+      <a class="btn" href="{% url 'historico:importar_lista_alunos' %}">Atualizar lista</a>
+      <a class="btn" href="{% url 'historico:importar_notas_pdf' %}">Importar notas PDF</a>
+      <a class="btn" href="{% url 'historico:dados_extras_anuais' %}">Dados por ano</a>
+      <a class="btn" href="{% url 'historico:aluno_novo' %}">Novo aluno</a>
+    </div>
   </div>
-  <form>
-    <input name="q" value="{{ q }}" placeholder="Digite o código ou nome do aluno" autofocus>
-    <button>LOCALIZAR ALUNO</button>
+
+  <form method="get" role="search">
+    <input
+      name="q"
+      value="{{ q }}"
+      maxlength="120"
+      placeholder="Digite o código ou nome do aluno"
+      autocomplete="off"
+      autofocus
+    >
+    <button>Localizar aluno</button>
   </form>
-  <div class="stats">
-    <span>{{ total }} alunos cadastrados</span>
-    <span>{{ registros }} registros acadêmicos</span>
+</section>
+
+<section class="dashboard-metrics" aria-label="Indicadores do sistema">
+  <div class="metric-card">
+    <span>Alunos</span>
+    <strong>{{ painel.alunos_total }}</strong>
+  </div>
+  <div class="metric-card">
+    <span>Registros acadêmicos</span>
+    <strong>{{ painel.registros_total }}</strong>
+  </div>
+  <div class="metric-card">
+    <span>Notas armazenadas</span>
+    <strong>{{ painel.notas_total }}</strong>
+  </div>
+  <div class="metric-card">
+    <span>Históricos autenticados</span>
+    <strong>{{ painel.documentos_total }}</strong>
+  </div>
+  <div class="metric-card {% if painel.alunos_incompletos %}is-warning{% endif %}">
+    <span>Cadastros incompletos</span>
+    <strong>{{ painel.alunos_incompletos }}</strong>
+  </div>
+  <div class="metric-card {% if painel.registros_sem_notas %}is-warning{% endif %}">
+    <span>Anos sem notas</span>
+    <strong>{{ painel.registros_sem_notas }}</strong>
+  </div>
+  <div class="metric-card {% if painel.registros_sem_matriz %}is-warning{% endif %}">
+    <span>Registros sem matriz</span>
+    <strong>{{ painel.registros_sem_matriz }}</strong>
+  </div>
+  <div class="metric-card">
+    <span>Proteção</span>
+    <strong style="font-size:16px">Auditoria + SHA-256</strong>
   </div>
 </section>
 
 {% if q %}
 <section class="card">
-  <h2>Resultado da pesquisa</h2>
+  <div class="toolbar">
+    <div>
+      <h2>Resultado da pesquisa</h2>
+      <p style="color:var(--muted);margin:0">Nascimento é mascarado na listagem para reduzir exposição desnecessária.</p>
+    </div>
+  </div>
+
   {% if alunos %}
-  <table>
-    <thead><tr><th>Cód.</th><th>Nome</th><th>Nascimento</th><th></th></tr></thead>
-    <tbody>
-    {% for a in alunos %}
-      <tr>
-        <td>{{ a.codigo }}</td>
-        <td>{{ a.nome }}</td>
-        <td>{{ a.nascimento }}</td>
-        <td><a class="btn" href="{% url 'historico:aluno' a.codigo %}">ABRIR</a></td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>Cód.</th><th>Nome</th><th>Nascimento</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for a in alunos %}
+        <tr>
+          <td>{{ a.codigo }}</td>
+          <td>{{ a.nome }}</td>
+          <td>{{ a.nascimento|mask_birth }}</td>
+          <td><a class="btn" href="{% url 'historico:aluno' a.codigo %}">Abrir</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p>Nenhum aluno encontrado.</p>
+    <p>Nenhum aluno encontrado.</p>
   {% endif %}
 </section>
 {% endif %}
+
+<section class="card">
+  <div class="toolbar">
+    <div>
+      <h2>Emissões autenticadas recentes</h2>
+      <p style="color:var(--muted);margin:0">Cada emissão possui snapshot, SHA-256, assinatura HMAC e QR Code público.</p>
+    </div>
+  </div>
+
+  {% if painel.documentos_recentes %}
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>Data</th><th>Aluno</th><th>Emitido por</th><th>Hash</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for doc in painel.documentos_recentes %}
+        <tr>
+          <td>{{ doc.emitido_em|date:"d/m/Y H:i" }}</td>
+          <td>{{ doc.aluno.nome }}</td>
+          <td>{{ doc.emitido_por|default:"—" }}</td>
+          <td><code>{{ doc.hash_sha256|slice:":12" }}…</code></td>
+          <td>{% if doc.revogado %}Revogado{% else %}Válido{% endif %}</td>
+          <td>
+            <a class="btn" href="{% url 'historico:historico' doc.aluno.codigo %}?documento={{ doc.id }}">Abrir</a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p>Nenhum histórico autenticado emitido ainda.</p>
+  {% endif %}
+</section>
 {% endblock %}
