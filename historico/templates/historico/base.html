@@ -6,17 +6,30 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{% block title %}Histórico Escolar{% endblock %}</title>
 
-  <link rel="stylesheet" href="{% static 'historico/css/app.css' %}?v=20261010-04">
+  <link rel="stylesheet" href="{% static 'historico/css/app.css' %}?v=20261010-05">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
 <header class="app-header">
+  <div class="school-strip">
+    <div class="school-strip__inner">
+      <span>E. M. Egídio Cordeiro Aquino</span>
+      <span class="school-strip__separator">•</span>
+      <span>Secretaria Acadêmica</span>
+    </div>
+  </div>
+
   <div class="app-header__inner">
     <a class="brand" href="{% url 'historico:inicio' %}" aria-label="Ir para o dashboard">
-      <span class="brand-mark">HE</span>
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" role="img" focusable="false">
+          <path d="M3 5.5c2.7-.9 5.4-.7 8 1v11c-2.6-1.7-5.3-1.9-8-1V5.5Zm18 0c-2.7-.9-5.4-.7-8 1v11c2.6-1.7 5.3-1.9 8-1V5.5Z"/>
+          <path d="M12 6.5v11"/>
+        </svg>
+      </span>
       <span class="brand-copy">
         <strong>Histórico Escolar</strong>
-        <small>Secretaria acadêmica</small>
+        <small>Gestão da vida escolar</small>
       </span>
     </a>
 
