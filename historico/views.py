@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 
 from .models import Aluno, Nota, RegistroAcademico
-from .services import historico_documento, historico_do_aluno
+from .services import historico_do_aluno, historico_oficial_do_aluno
 
 
 def inicio(request):
@@ -46,12 +46,17 @@ def aluno_detalhe(request, codigo):
 
 def historico_impressao(request, codigo):
     aluno = get_object_or_404(Aluno, codigo=codigo)
+    oficial = historico_oficial_do_aluno(aluno)
     return render(
         request,
         "historico/historico.html",
         {
             "aluno": aluno,
-            "documento": historico_documento(aluno),
+            "historico": oficial["anos"],
+            "nascimento": oficial["nascimento"],
+            "data_conclusao": oficial["data_conclusao"],
+            "data_expedicao": oficial["data_expedicao"],
+            "observacao_historico": oficial["observacao_historico"],
             "can_edit": bool(
                 request.user.is_authenticated and request.user.is_staff
             ),
@@ -91,7 +96,6 @@ def salvar_historico(request, codigo):
         "identidade",
         "orgao_expedidor",
         "data_conclusao",
-        "ultima_serie_concluida",
         "data_expedicao",
         "observacao_historico",
         "uf",
