@@ -5,7 +5,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.forms import modelformset_factory
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -16,6 +16,7 @@ from .academico import (
     indicadores_aluno,
     matriz_para_ano,
     painel_geral,
+    relatorio_completo_aluno,
     relatorio_integridade,
 )
 from .auditoria import registrar_auditoria
@@ -150,6 +151,7 @@ def _anos_editor(aluno=None, post=None):
                 "registro": registro,
                 "ano": valor("ano"),
                 "turma": valor("turma"),
+                "professor_responsavel": valor("professor_responsavel"),
                 "faltas": valor("faltas"),
                 "frequencia": valor("frequencia"),
                 "carga_horaria": valor("carga_horaria"),
@@ -556,6 +558,105 @@ def dados_extras_anuais(request):
     )
 
 
+def relatorios(request):
+    q = (request.GET.get("q") or "").strip()[:120]
+    ano_texto = (request.GET.get("ano") or "").strip()
+    serie_texto = (request.GET.get("serie") or "").strip()
+    turma = (request.GET.get("turma") or "").strip()[:120]
+    status = (request.GET.get("status") or "").strip().lower()
+
+    alunos_qs = Aluno.objects.all()
+    if q:
+        filtro = Q(nome__icontains=q) | Q(matricula__icontains=q)
+        if q.isdigit():
+            filtro |= Q(codigo=int(q))
+        alunos_qs = alunos_qs.filter(filtro)
+
+    filtros_relacao = {}
+    if ano_texto.isdigit():
+        filtros_relacao["registros_academicos__ano"] = int(ano_texto)
+    if serie_texto.isdigit() and 1 <= int(serie_texto) <= 5:
+        filtros_relacao["registros_academicos__serie"] = int(serie_texto)
+    if turma:
+        filtros_relacao["registros_academicos__turma__icontains"] = turma
+    if status == "ativa":
+        filtros_relacao["registros_academicos__ativo_no_historico"] = True
+    elif status == "inativa":
+        filtros_relacao["registros_academicos__ativo_no_historico"] = False
+
+    if filtros_relacao:
+        alunos_qs = alunos_qs.filter(**filtros_relacao)
+
+    alunos_qs = (
+        alunos_qs
+        .annotate(
+            total_relacoes=Count(
+                "registros_academicos",
+                distinct=True,
+            ),
+            relacoes_ativas=Count(
+                "registros_academicos",
+                filter=Q(
+                    registros_academicos__ativo_no_historico=True
+                ),
+                distinct=True,
+            ),
+        )
+        .distinct()
+        .order_by("nome")
+    )
+
+    total_resultados = alunos_qs.count()
+    alunos = list(alunos_qs[:100])
+    anos_disponiveis = list(
+        RegistroAcademico.objects
+        .values_list("ano", flat=True)
+        .distinct()
+        .order_by("-ano")
+    )
+
+    return render(
+        request,
+        "historico/relatorios.html",
+        {
+            "alunos": alunos,
+            "total_resultados": total_resultados,
+            "q": q,
+            "ano": ano_texto,
+            "serie": serie_texto,
+            "turma": turma,
+            "status": status,
+            "anos_disponiveis": anos_disponiveis,
+        },
+    )
+
+
+def relatorio_aluno(request, codigo):
+    aluno = get_object_or_404(Aluno, codigo=codigo)
+    dados = relatorio_completo_aluno(aluno)
+
+    registrar_auditoria(
+        request,
+        "REQUEST_SENSIVEL",
+        entidade="Aluno",
+        objeto_id=aluno.codigo,
+        objeto_repr=aluno.nome,
+        detalhes={
+            "operacao": "relatorio_completo_visualizado",
+            "relacoes": dados["total_relacoes"],
+        },
+    )
+
+    return render(
+        request,
+        "historico/relatorio_aluno.html",
+        {
+            "aluno": aluno,
+            "relatorio": dados,
+        },
+    )
+
+
 def aluno_detalhe(request, codigo):
     aluno = get_object_or_404(Aluno, codigo=codigo)
     return render(
@@ -796,6 +897,7 @@ def gerenciar_aluno(request, codigo=None):
 
                     for campo in (
                         "turma",
+                        "professor_responsavel",
                         "faltas",
                         "frequencia",
                         "carga_horaria",
@@ -918,6 +1020,7 @@ def salvar_historico(request, codigo):
         "faltas",
         "frequencia",
         "carga_horaria",
+        "professor_responsavel",
         "resultado",
         "escola",
         "municipio",
@@ -1049,6 +1152,11 @@ def salvar_historico(request, codigo):
                 nome_original=aluno.nome,
                 ano=ano,
                 serie=serie,
+                professor_responsavel=_texto_limitado(
+                    RegistroAcademico,
+                    "professor_responsavel",
+                    item.get("professor_responsavel", ""),
+                ),
                 ativo_no_historico=True,
             )
             novos_criados += 1
