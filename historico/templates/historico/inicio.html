@@ -1,32 +1,42 @@
 {% extends 'historico/base.html' %}
 {% load privacy %}
 
-{% block title %}Dashboard · Histórico Escolar{% endblock %}
+{% block title %}Início · Histórico Escolar{% endblock %}
 
 {% block content %}
-<section class="dashboard-heading">
-  <div>
+<section class="dashboard-welcome">
+  <div class="dashboard-welcome__copy">
     <span class="eyebrow">SECRETARIA ACADÊMICA</span>
     <h1>Histórico Escolar</h1>
-    <p>Cadastros, vida escolar, relatórios, importações e conferência dos dados acadêmicos em um só lugar.</p>
+    <p>Consulte o prontuário do aluno, emita relatórios e acompanhe a organização da vida escolar.</p>
   </div>
-  <div class="dashboard-heading__actions">
-    <a class="btn" href="{% url 'historico:relatorios' %}">Emitir relatório</a>
+  <div class="dashboard-welcome__actions">
+    <a class="btn" href="{% url 'historico:relatorios' %}">Relatórios</a>
     <a class="btn primary" href="{% url 'historico:aluno_novo' %}">Novo aluno</a>
   </div>
 </section>
 
-<section class="dashboard-search-card">
-  <div class="dashboard-search-copy">
-    <strong>Localizar aluno</strong>
-    <span>Pesquise pelo nome ou código para abrir o prontuário e emitir documentos.</span>
+<section class="student-search-panel">
+  <div class="student-search-panel__intro">
+    <span class="student-search-panel__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" focusable="false">
+        <circle cx="10.5" cy="10.5" r="5.5"></circle>
+        <path d="m15 15 4.2 4.2"></path>
+        <path d="M8.5 10.5h4M10.5 8.5v4"></path>
+      </svg>
+    </span>
+    <div>
+      <strong>Localizar aluno</strong>
+      <span>Digite o nome ou código. Nenhum dado individual é exibido antes da pesquisa.</span>
+    </div>
   </div>
+
   <form method="get" role="search" class="dashboard-search-form">
     <input
       name="q"
       value="{{ q }}"
       maxlength="120"
-      placeholder="Digite o código ou nome do aluno"
+      placeholder="Nome ou código do aluno"
       autocomplete="off"
       autofocus
     >
@@ -34,58 +44,80 @@
   </form>
 </section>
 
-
-
-<section class="dashboard-metrics" aria-label="Indicadores do sistema">
-  <div class="metric-card">
-    <span>Alunos</span>
+<section class="dashboard-overview" aria-label="Resumo do sistema">
+  <article class="overview-card overview-card--primary">
+    <span class="overview-card__label">Alunos cadastrados</span>
     <strong>{{ painel.alunos_total }}</strong>
-  </div>
-  <div class="metric-card">
-    <span>Relações acadêmicas</span>
+    <small>Total de cadastros preservados no sistema.</small>
+  </article>
+
+  <article class="overview-card">
+    <span class="overview-card__label">Relações acadêmicas</span>
     <strong>{{ painel.registros_total }}</strong>
-  </div>
-  <div class="metric-card">
-    <span>Relações ativas</span>
+    <small>Vínculos de ano, série e turma.</small>
+  </article>
+
+  <article class="overview-card">
+    <span class="overview-card__label">Relações ativas</span>
     <strong>{{ painel.relacoes_ativas }}</strong>
-  </div>
-  <div class="metric-card">
-    <span>Relações inativas</span>
-    <strong>{{ painel.relacoes_inativas }}</strong>
-  </div>
-  <div class="metric-card">
-    <span>Notas armazenadas</span>
+    <small>Relações consideradas no histórico oficial.</small>
+  </article>
+
+  <article class="overview-card">
+    <span class="overview-card__label">Notas armazenadas</span>
     <strong>{{ painel.notas_total }}</strong>
+    <small>Notas preservadas em todas as relações.</small>
+  </article>
+</section>
+
+<section class="data-quality-strip" aria-label="Qualidade dos dados">
+  <div class="data-quality-strip__title">
+    <span class="eyebrow">CONFERÊNCIA</span>
+    <strong>Qualidade dos dados</strong>
   </div>
-  <div class="metric-card {% if painel.alunos_incompletos %}is-warning{% endif %}">
+
+  <a href="{% url 'historico:integridade_dados' %}" class="quality-item {% if painel.alunos_incompletos %}is-warning{% endif %}">
     <span>Cadastros incompletos</span>
     <strong>{{ painel.alunos_incompletos }}</strong>
-  </div>
-  <div class="metric-card {% if painel.registros_sem_notas %}is-warning{% endif %}">
+  </a>
+
+  <a href="{% url 'historico:integridade_dados' %}" class="quality-item {% if painel.registros_sem_notas %}is-warning{% endif %}">
     <span>Relações sem notas</span>
     <strong>{{ painel.registros_sem_notas }}</strong>
-  </div>
-  <div class="metric-card {% if painel.registros_sem_matriz %}is-warning{% endif %}">
+  </a>
+
+  <a href="{% url 'historico:integridade_dados' %}" class="quality-item {% if painel.registros_sem_matriz %}is-warning{% endif %}">
     <span>Sem matriz curricular</span>
     <strong>{{ painel.registros_sem_matriz }}</strong>
+  </a>
+
+  <div class="quality-item">
+    <span>Relações inativas</span>
+    <strong>{{ painel.relacoes_inativas }}</strong>
   </div>
 </section>
 
 {% if q %}
-<section class="card">
+<section class="card search-results-card">
   <div class="section-title-row">
     <div>
-      <h2>Resultado da pesquisa</h2>
-      <p>Nascimento é mascarado nesta listagem para reduzir exposição desnecessária.</p>
+      <span class="eyebrow">RESULTADO DA PESQUISA</span>
+      <h2>Aluno(s) encontrado(s)</h2>
+      <p>Os dados aparecem somente porque uma pesquisa foi realizada.</p>
     </div>
-    <a class="btn" href="{% url 'historico:relatorios' %}?q={{ q|urlencode }}">Abrir em relatórios</a>
+    <a class="btn" href="{% url 'historico:inicio' %}">Limpar pesquisa</a>
   </div>
 
   {% if alunos %}
   <div class="table-scroll">
     <table>
       <thead>
-        <tr><th>Cód.</th><th>Nome</th><th>Nascimento</th><th class="actions-column">Ações</th></tr>
+        <tr>
+          <th>Cód.</th>
+          <th>Nome</th>
+          <th>Nascimento</th>
+          <th class="actions-column">Ações</th>
+        </tr>
       </thead>
       <tbody>
       {% for a in alunos %}
@@ -111,43 +143,13 @@
     </div>
   {% endif %}
 </section>
-{% endif %}
-
-<section class="card">
-  <div class="section-title-row">
-    <div>
-      <h2>Históricos emitidos recentemente</h2>
-      <p>Emissões preservadas com snapshot e verificação de integridade.</p>
-    </div>
+{% else %}
+<section class="dashboard-privacy-note">
+  <span class="dashboard-privacy-note__icon">i</span>
+  <div>
+    <strong>Consulta sob demanda</strong>
+    <p>O painel mostra apenas números gerais. Nomes e demais dados individuais só aparecem depois que você pesquisa um aluno.</p>
   </div>
-
-  {% if painel.documentos_recentes %}
-  <div class="table-scroll">
-    <table>
-      <thead>
-        <tr><th>Data</th><th>Aluno</th><th>Emitido por</th><th>Hash</th><th>Status</th><th class="actions-column">Ação</th></tr>
-      </thead>
-      <tbody>
-      {% for doc in painel.documentos_recentes %}
-        <tr>
-          <td>{{ doc.emitido_em|date:"d/m/Y H:i" }}</td>
-          <td>{{ doc.aluno.nome }}</td>
-          <td>{{ doc.emitido_por|default:"—" }}</td>
-          <td><code>{{ doc.hash_sha256|slice:":12" }}…</code></td>
-          <td>{% if doc.revogado %}Revogado{% else %}Válido{% endif %}</td>
-          <td>
-            <a class="btn btn-small" href="{% url 'historico:historico' doc.aluno.codigo %}?documento={{ doc.id }}">Abrir</a>
-          </td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-    <div class="empty-state">
-      <strong>Nenhum histórico emitido ainda.</strong>
-      <span>As emissões aparecerão aqui para conferência.</span>
-    </div>
-  {% endif %}
 </section>
+{% endif %}
 {% endblock %}
