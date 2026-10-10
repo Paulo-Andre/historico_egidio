@@ -15,6 +15,20 @@ PY
   export DJANGO_SECRET_KEY="$(cat "$SECRET_FILE")"
 fi
 
+SIGNING_FILE=/app/data/.document_signing_key
+if [ -z "$DOCUMENT_SIGNING_KEY" ]; then
+  if [ ! -f "$SIGNING_FILE" ]; then
+    python - <<'PY'
+import secrets
+from pathlib import Path
+path = Path("/app/data/.document_signing_key")
+path.write_text(secrets.token_urlsafe(64), encoding="utf-8")
+path.chmod(0o600)
+PY
+  fi
+  export DOCUMENT_SIGNING_KEY="$(cat "$SIGNING_FILE")"
+fi
+
 python manage.py migrate --noinput
 
 if [ -f /app/data/migracao_inicial_historico_egidio.json ]; then
