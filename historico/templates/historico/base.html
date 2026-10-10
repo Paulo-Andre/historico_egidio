@@ -6,27 +6,41 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{% block title %}Histórico Escolar{% endblock %}</title>
 
-  <link rel="stylesheet" href="{% static 'historico/css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'historico/css/app.css' %}?v=20261010-04">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
 <header class="app-header">
-  <div class="brand">
-    <span class="brand-mark">HE</span>
-    <span>Histórico Escolar</span>
+  <div class="app-header__inner">
+    <a class="brand" href="{% url 'historico:inicio' %}" aria-label="Ir para o dashboard">
+      <span class="brand-mark">HE</span>
+      <span class="brand-copy">
+        <strong>Histórico Escolar</strong>
+        <small>Secretaria acadêmica</small>
+      </span>
+    </a>
+
+    <nav class="main-nav" aria-label="Menu principal">
+      <a class="{% if request.resolver_match.url_name == 'inicio' %}is-active{% endif %}"
+         href="{% url 'historico:inicio' %}">Dashboard</a>
+      <a class="{% if request.resolver_match.url_name == 'relatorios' or request.resolver_match.url_name == 'relatorio_aluno' %}is-active{% endif %}"
+         href="{% url 'historico:relatorios' %}">Relatórios</a>
+      <a class="{% if request.resolver_match.url_name == 'aluno_novo' %}is-active{% endif %}"
+         href="{% url 'historico:aluno_novo' %}">Novo aluno</a>
+      <a class="{% if request.resolver_match.url_name == 'importar_lista_alunos' %}is-active{% endif %}"
+         href="{% url 'historico:importar_lista_alunos' %}">Atualizar lista</a>
+      <a class="{% if request.resolver_match.url_name == 'importar_notas_pdf' %}is-active{% endif %}"
+         href="{% url 'historico:importar_notas_pdf' %}">Importar notas</a>
+      <a class="{% if request.resolver_match.url_name == 'dados_extras_anuais' %}is-active{% endif %}"
+         href="{% url 'historico:dados_extras_anuais' %}">Dados por ano</a>
+      <a class="{% if request.resolver_match.url_name == 'integridade_dados' %}is-active{% endif %}"
+         href="{% url 'historico:integridade_dados' %}">Integridade</a>
+      <a class="nav-admin" href="/admin/">Administração</a>
+      {% if request.user.is_authenticated %}
+        <span class="nav-user">{{ request.user.username }}</span>
+      {% endif %}
+    </nav>
   </div>
-  <nav>
-    <a href="{% url 'historico:inicio' %}">Dashboard</a>
-    <a href="{% url 'historico:aluno_novo' %}">Novo aluno</a>
-    <a href="{% url 'historico:importar_lista_alunos' %}">Atualizar lista</a>
-    <a href="{% url 'historico:importar_notas_pdf' %}">Importar notas PDF</a>
-    <a href="{% url 'historico:dados_extras_anuais' %}">Dados por ano</a>
-    <a href="{% url 'historico:integridade_dados' %}">Integridade</a>
-    <a href="/admin/">Administração</a>
-    {% if request.user.is_authenticated %}
-      <span class="nav-user">{{ request.user.username }}</span>
-    {% endif %}
-  </nav>
 </header>
 
 <main class="app-main">
