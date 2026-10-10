@@ -259,3 +259,84 @@ class AlunoCadastroEdicaoTests(TestCase):
         self.assertEqual(registro.turma, "B")
         self.assertEqual(registro.frequencia, "98%")
         self.assertEqual(nota.valor, "95")
+
+
+
+class DadosExtrasAnuaisTests(TestCase):
+    def setUp(self):
+        self.staff = get_user_model().objects.create_user(
+            username="configurador",
+            password="senha-teste",
+            is_staff=True,
+        )
+        self.user = get_user_model().objects.create_user(
+            username="leitor",
+            password="senha-teste",
+            is_staff=False,
+        )
+
+    def test_operador_acessa_dados_extras(self):
+        self.client.login(username="configurador", password="senha-teste")
+        response = self.client.get(reverse("historico:dados_extras_anuais"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Dados extras por ano letivo")
+        self.assertContains(response, "Mínimo para aprovação")
+        self.assertContains(response, "Carga horária anual")
+        self.assertContains(response, "Dias letivos")
+        self.assertContains(response, "Data de conclusão")
+
+    def test_usuario_sem_permissao_nao_altera_configuracao_anual(self):
+        self.client.login(username="leitor", password="senha-teste")
+        response = self.client.get(reverse("historico:dados_extras_anuais"))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_cadastra_configuracao_anual(self):
+        self.client.login(username="configurador", password="senha-teste")
+        response = self.client.post(
+            reverse("historico:dados_extras_anuais"),
+            data={
+                "anos-TOTAL_FORMS": "1",
+                "anos-INITIAL_FORMS": "0",
+                "anos-MIN_NUM_FORMS": "0",
+                "anos-MAX_NUM_FORMS": "1000",
+                "anos-0-ano": "2026",
+                "anos-0-media_minima": "60",
+                "anos-0-ch_anual": "833:20",
+                "anos-0-dias_letivos": "200",
+                "anos-0-ch_ingles": "66:40",
+                "anos-0-ch_sem_ingles": "766:40",
+                "anos-0-data_conclusao": "18/12/2026",
+                "anos-0-escola": "E. M. EGÍDIO CORDEIRO AQUINO",
+                "anos-0-municipio": "MONTES CLAROS",
+                "anos-0-uf": "MG",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        config = ConfiguracaoAno.objects.get(ano=2026)
+        self.assertEqual(config.media_minima, "60")
+        self.assertEqual(config.ch_anual, "833:20")
+        self.assertEqual(config.dias_letivos, "200")
+        self.assertEqual(config.data_conclusao, "18/12/2026")
+
+    def test_data_conclusao_anual_e_usada_como_padrao_do_certificado(self):
+        aluno = Aluno.objects.create(codigo=77, nome="Aluno Concluinte")
+        ConfiguracaoAno.objects.create(
+            ano=2026,
+            media_minima="60",
+            ch_anual="833:20",
+            dias_letivos="200",
+            data_conclusao="18/12/2026",
+        )
+        RegistroAcademico.objects.create(
+            aluno=aluno,
+            ano=2026,
+            serie=5,
+            resultado="APROVADO",
+        )
+
+        documento = historico_oficial_do_aluno(aluno)
+
+        self.assertEqual(documento["data_conclusao"], "18/12/2026")
