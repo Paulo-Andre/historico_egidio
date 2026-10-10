@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Aluno
+from .models import Aluno, ConfiguracaoAno
 
 
 UF_CHOICES = [
@@ -148,3 +148,70 @@ class AlunoCadastroForm(forms.ModelForm):
         if not nome:
             raise forms.ValidationError("Informe o nome completo do aluno.")
         return nome
+
+
+
+class ConfiguracaoAnoForm(forms.ModelForm):
+    uf = forms.ChoiceField(
+        choices=UF_CHOICES,
+        required=False,
+        label="UF",
+    )
+
+    class Meta:
+        model = ConfiguracaoAno
+        fields = [
+            "ano",
+            "media_minima",
+            "ch_anual",
+            "dias_letivos",
+            "ch_ingles",
+            "ch_sem_ingles",
+            "data_conclusao",
+            "escola",
+            "municipio",
+            "uf",
+        ]
+        labels = {
+            "ano": "Ano letivo",
+            "media_minima": "Mínimo para aprovação",
+            "ch_anual": "Carga horária anual",
+            "dias_letivos": "Dias letivos",
+            "ch_ingles": "Carga horária de Inglês",
+            "ch_sem_ingles": "Carga horária sem Inglês",
+            "data_conclusao": "Data de conclusão",
+            "escola": "Escola",
+            "municipio": "Município",
+            "uf": "UF",
+        }
+        widgets = {
+            "ano": forms.NumberInput(attrs={"min": 1900, "max": 2100}),
+            "media_minima": forms.TextInput(
+                attrs={"placeholder": "Ex.: 60 ou 0,60"}
+            ),
+            "ch_anual": forms.TextInput(
+                attrs={"placeholder": "Ex.: 800 ou 833:20"}
+            ),
+            "dias_letivos": forms.TextInput(attrs={"placeholder": "Ex.: 200"}),
+            "ch_ingles": forms.TextInput(attrs={"placeholder": "Ex.: 66:40"}),
+            "ch_sem_ingles": forms.TextInput(attrs={"placeholder": "Ex.: 766:40"}),
+            "data_conclusao": forms.TextInput(
+                attrs={"placeholder": "DD/MM/AAAA"}
+            ),
+            "municipio": forms.TextInput(attrs={"placeholder": "MONTES CLAROS"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            atual = self.instance.uf
+            if atual and atual not in dict(self.fields["uf"].choices):
+                self.fields["uf"].choices = list(self.fields["uf"].choices) + [
+                    (atual, atual)
+                ]
+
+    def clean_ano(self):
+        ano = self.cleaned_data["ano"]
+        if ano < 1900 or ano > 2100:
+            raise forms.ValidationError("Informe um ano entre 1900 e 2100.")
+        return ano
