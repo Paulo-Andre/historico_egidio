@@ -118,6 +118,11 @@ class RegistroAcademico(models.Model):
     ano = models.PositiveIntegerField(db_index=True)
     serie = models.PositiveSmallIntegerField(null=True, blank=True)
     turma = models.CharField(max_length=120, blank=True)
+    professor_responsavel = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Professor(a) responsável",
+    )
     faltas = models.CharField(max_length=40, blank=True)
     frequencia = models.CharField(max_length=30, blank=True)
     carga_horaria = models.CharField(max_length=30, blank=True)
