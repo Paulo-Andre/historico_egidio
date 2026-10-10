@@ -174,13 +174,13 @@
         <dl class="school-data-grid">
           <div>
             <dt>Escola</dt>
-            <dd>{{ item.registro.escola|default:"—" }}</dd>
+            <dd>{{ item.escola|default:"—" }}</dd>
           </div>
           <div>
             <dt>Município / UF</dt>
             <dd>
-              {{ item.registro.municipio|default:"—" }}
-              {% if item.registro.uf %} / {{ item.registro.uf }}{% endif %}
+              {{ item.municipio|default:"—" }}
+              {% if item.uf %} / {{ item.uf }}{% endif %}
             </dd>
           </div>
           <div>
