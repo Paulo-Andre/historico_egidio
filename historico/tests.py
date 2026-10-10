@@ -131,6 +131,78 @@ class HistoricoEditorJsonTests(TestCase):
         self.assertEqual(nota.valor, "55")
 
 
+class CertificadoConclusaoEditavelTests(TestCase):
+    def test_campos_de_conclusao_ficam_editaveis_mesmo_sem_registro(self):
+        aluno = Aluno.objects.create(
+            codigo=11,
+            nome="ALUNO SEM VIDA ESCOLAR",
+        )
+
+        response = self.client.get(
+            reverse("historico:historico", args=[aluno.codigo])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-field="data_conclusao"')
+        self.assertContains(response, 'data-field="serie_conclusao"')
+        self.assertContains(response, 'data-placeholder="dd/mm/aaaa"')
+        self.assertContains(response, 'data-placeholder="5º"')
+
+    def test_salva_data_e_serie_sem_ano_ou_registro_academico(self):
+        aluno = Aluno.objects.create(
+            codigo=12,
+            nome="ALUNO CONCLUSAO MANUAL",
+        )
+
+        response = self.client.post(
+            reverse("historico:salvar_historico", args=[aluno.codigo]),
+            data=json.dumps(
+                {
+                    "aluno": {
+                        "data_conclusao": "18/12/2026",
+                        "serie_conclusao": "5º",
+                    },
+                    "registros": [],
+                    "novos_registros": [],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        aluno.refresh_from_db()
+        self.assertEqual(aluno.data_conclusao, "18/12/2026")
+        self.assertEqual(aluno.serie_conclusao, "5º")
+
+        oficial = historico_oficial_do_aluno(aluno)
+        self.assertEqual(oficial["data_conclusao"], "18/12/2026")
+        self.assertEqual(oficial["serie_conclusao"], "5º")
+        self.assertEqual(oficial["ultima_serie"], "")
+
+    def test_data_manual_tem_prioridade_sobre_configuracao_do_ano(self):
+        aluno = Aluno.objects.create(
+            codigo=13,
+            nome="ALUNO DATA MANUAL",
+            data_conclusao="19/12/2026",
+        )
+        ConfiguracaoAno.objects.create(
+            ano=2026,
+            data_conclusao="10/12/2026",
+        )
+        RegistroAcademico.objects.create(
+            aluno=aluno,
+            nome_original=aluno.nome,
+            ano=2026,
+            serie=5,
+            ativo_no_historico=True,
+        )
+
+        oficial = historico_oficial_do_aluno(aluno)
+
+        self.assertEqual(oficial["data_conclusao"], "19/12/2026")
+        self.assertEqual(oficial["serie_conclusao"], "5º")
+
+
 class AlunoCadastroEdicaoTests(TestCase):
     def setUp(self):
         self.staff = get_user_model().objects.create_user(
