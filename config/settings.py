@@ -39,6 +39,12 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": DATA_DIR / "historico.sqlite3",
+        "OPTIONS": {
+            # Importações de ATA escrevem milhares de registros. Um timeout
+            # maior evita falhas transitórias "database is locked" quando
+            # outro worker estiver encerrando uma escrita curta.
+            "timeout": 60,
+        },
     }
 }
 
