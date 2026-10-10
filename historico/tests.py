@@ -343,3 +343,33 @@ class DadosExtrasAnuaisTests(TestCase):
         documento = historico_oficial_do_aluno(aluno)
 
         self.assertEqual(documento["data_conclusao"], "18/12/2026")
+
+
+
+class CertificadoUltimoAnoTests(TestCase):
+    def test_conclusao_e_serie_usam_ultimo_ano_cursado(self):
+        aluno = Aluno.objects.create(codigo=88, nome="Aluno com transferência")
+        ConfiguracaoAno.objects.create(
+            ano=2024,
+            media_minima="60",
+            ch_anual="800",
+            dias_letivos="200",
+            data_conclusao="17/12/2024",
+        )
+        RegistroAcademico.objects.create(
+            aluno=aluno,
+            ano=2022,
+            serie=2,
+            resultado="APROVADO",
+        )
+        RegistroAcademico.objects.create(
+            aluno=aluno,
+            ano=2024,
+            serie=4,
+            resultado="APROVADO",
+        )
+
+        documento = historico_oficial_do_aluno(aluno)
+
+        self.assertEqual(documento["ultima_serie"], 4)
+        self.assertEqual(documento["data_conclusao"], "17/12/2024")
