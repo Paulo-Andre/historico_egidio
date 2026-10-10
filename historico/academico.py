@@ -179,22 +179,38 @@ def indicadores_aluno(aluno):
     medias = []
     alertas = []
     total_notas = 0
+    relacoes_ativas = 0
 
     for registro in registros:
+        quantidade_notas = registro.notas.count()
+        total_notas += quantidade_notas
+
         media = media_ponderada_registro(registro)
-        if media is not None:
-            medias.append(media)
-        alertas_ano = alertas_registro(registro)
-        alertas.extend(
-            [{**alerta, "ano": registro.ano, "serie": registro.serie} for alerta in alertas_ano]
-        )
-        total_notas += registro.notas.count()
+        if registro.ativo_no_historico:
+            relacoes_ativas += 1
+            if media is not None:
+                medias.append(media)
+            alertas_ano = alertas_registro(registro)
+            alertas.extend(
+                [
+                    {
+                        **alerta,
+                        "ano": registro.ano,
+                        "serie": registro.serie,
+                        "turma": registro.turma,
+                    }
+                    for alerta in alertas_ano
+                ]
+            )
+        else:
+            alertas_ano = []
+
         linhas.append(
             {
                 "registro": registro,
                 "media": media,
                 "alertas": alertas_ano,
-                "quantidade_notas": registro.notas.count(),
+                "quantidade_notas": quantidade_notas,
             }
         )
 
@@ -209,10 +225,19 @@ def indicadores_aluno(aluno):
         "media_geral": media_geral,
         "total_notas": total_notas,
         "alertas": alertas,
-        "anos_cursados": len(registros),
-        "ultimo_ano": max((r.ano for r in registros), default=None),
+        "relacoes_total": len(registros),
+        "relacoes_ativas": relacoes_ativas,
+        "anos_cursados": relacoes_ativas,
+        "ultimo_ano": max(
+            (r.ano for r in registros if r.ativo_no_historico),
+            default=None,
+        ),
         "ultima_serie": max(
-            (r.serie or 0 for r in registros),
+            (
+                r.serie or 0
+                for r in registros
+                if r.ativo_no_historico
+            ),
             default=0,
         ) or None,
     }
