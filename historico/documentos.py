@@ -104,7 +104,7 @@ def hash_snapshot(snapshot):
 
 def assinatura_snapshot(hash_sha256):
     return hmac.new(
-        settings.SECRET_KEY.encode("utf-8"),
+        settings.DOCUMENT_SIGNING_KEY.encode("utf-8"),
         hash_sha256.encode("ascii"),
         hashlib.sha256,
     ).hexdigest()
