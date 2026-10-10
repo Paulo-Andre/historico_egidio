@@ -366,12 +366,6 @@ def painel_geral():
         matriz_curricular__isnull=True
     ).count()
 
-    documentos_recentes = list(
-        DocumentoHistorico.objects
-        .select_related("aluno", "emitido_por")
-        .order_by("-emitido_em")[:8]
-    )
-
     return {
         "alunos_total": alunos_total,
         "registros_total": registros_total,
@@ -382,7 +376,6 @@ def painel_geral():
         "alunos_incompletos": alunos_incompletos,
         "registros_sem_notas": registros_sem_notas,
         "registros_sem_matriz": registros_sem_matriz,
-        "documentos_recentes": documentos_recentes,
     }
 
 
