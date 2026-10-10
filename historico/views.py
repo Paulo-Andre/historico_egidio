@@ -13,6 +13,16 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
+from .academico import indicadores_aluno, matriz_para_ano, painel_geral
+from .auditoria import registrar_auditoria
+from .documentos import (
+    contexto_snapshot,
+    emitir_documento,
+    mascarar_codigo,
+    mascarar_nome,
+    qr_code_data_uri,
+    validar_documento,
+)
 from .forms import (
     AlunoCadastroForm,
     ConfiguracaoAnoForm,
@@ -32,7 +42,13 @@ from .importacao_notas_pdf import (
     aplicar_notas_pdf,
     extrair_notas_pdf,
 )
-from .models import Aluno, ConfiguracaoAno, Nota, RegistroAcademico
+from .models import (
+    Aluno,
+    ConfiguracaoAno,
+    DocumentoHistorico,
+    Nota,
+    RegistroAcademico,
+)
 from .services import historico_do_aluno, historico_oficial_do_aluno
 
 
@@ -149,8 +165,12 @@ def _anos_editor(aluno=None, post=None):
     return anos
 
 
+@login_required
 def inicio(request):
-    q = request.GET.get("q", "").strip()
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Acesso restrito à secretaria.")
+
+    q = request.GET.get("q", "").strip()[:120]
     alunos = []
     if q:
         filtro = Q(nome__icontains=q)
@@ -166,6 +186,7 @@ def inicio(request):
             "alunos": alunos,
             "total": Aluno.objects.count(),
             "registros": RegistroAcademico.objects.count(),
+            "painel": painel_geral(),
         },
     )
 
@@ -285,6 +306,20 @@ def importar_notas_pdf(request):
                 try:
                     leitura = extrair_notas_pdf(caminho)
                     resultado = aplicar_notas_pdf(leitura)
+                    registrar_auditoria(
+                        request,
+                        "IMPORTACAO_NOTAS",
+                        entidade="ImportacaoNotasPDF",
+                        objeto_id=request.session.get("importacao_notas_pdf_token", ""),
+                        detalhes={
+                            "total": resultado.get("total", 0),
+                            "processados": resultado.get("processados", 0),
+                            "alunos_criados": resultado.get("alunos_criados", 0),
+                            "notas_adicionadas": resultado.get("notas_adicionadas", 0),
+                            "notas_preservadas": resultado.get("notas_preservadas", 0),
+                            "conflitos": len(resultado.get("conflitos", [])),
+                        },
+                    )
                     _limpar_importacao_notas(request)
                 except ErroImportacaoNotasPdf as exc:
                     erro = str(exc)
@@ -382,6 +417,18 @@ def importar_lista_alunos(request):
                 try:
                     leitura = ler_lista_alunos(caminho)
                     resultado = aplicar_lista(leitura)
+                    registrar_auditoria(
+                        request,
+                        "IMPORTACAO_ALUNOS",
+                        entidade="ImportacaoAlunos",
+                        objeto_id=request.session.get("importacao_alunos_token", ""),
+                        detalhes={
+                            "total": resultado.get("total", 0),
+                            "criados": resultado.get("criados", 0),
+                            "atualizados": resultado.get("atualizados", 0),
+                            "conflitos": len(resultado.get("conflitos", [])),
+                        },
+                    )
                     _limpar_importacao_da_sessao(request)
                 except ErroImportacao as exc:
                     erro = str(exc)
@@ -486,7 +533,10 @@ def dados_extras_anuais(request):
     )
 
 
+@login_required
 def aluno_detalhe(request, codigo):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Acesso restrito à secretaria.")
     aluno = get_object_or_404(Aluno, codigo=codigo)
     return render(
         request,
@@ -494,17 +544,46 @@ def aluno_detalhe(request, codigo):
         {
             "aluno": aluno,
             "historico": historico_do_aluno(aluno),
+            "indicadores": indicadores_aluno(aluno),
         },
     )
 
 
+@login_required
 def historico_impressao(request, codigo):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Acesso restrito à secretaria.")
+
     aluno = get_object_or_404(Aluno, codigo=codigo)
-    oficial = historico_oficial_do_aluno(aluno)
-    return render(
-        request,
-        "historico/historico.html",
-        {
+    documento = None
+    documento_id = request.GET.get("documento", "").strip()
+
+    if documento_id:
+        documento = get_object_or_404(
+            DocumentoHistorico,
+            pk=documento_id,
+            aluno=aluno,
+        )
+        contexto = contexto_snapshot(documento)
+        contexto.update(
+            {
+                "documento": documento,
+                "validacao_documento": validar_documento(documento),
+                "qr_code_data_uri": qr_code_data_uri(request, documento),
+                "can_edit": False,
+            }
+        )
+        registrar_auditoria(
+            request,
+            "HISTORICO_VISUALIZADO",
+            entidade="DocumentoHistorico",
+            objeto_id=documento.id,
+            objeto_repr=aluno.nome,
+            detalhes={"modo": "documento_emitido"},
+        )
+    else:
+        oficial = historico_oficial_do_aluno(aluno)
+        contexto = {
             "aluno": aluno,
             "historico": oficial["anos"],
             "tem_2020": oficial["tem_2020"],
@@ -513,9 +592,54 @@ def historico_impressao(request, codigo):
             "ultima_serie": oficial["ultima_serie"],
             "data_expedicao": oficial["data_expedicao"],
             "observacao_historico": oficial["observacao_historico"],
-            "can_edit": bool(
-                request.user.is_authenticated and request.user.is_staff
-            ),
+            "documento": None,
+            "validacao_documento": None,
+            "qr_code_data_uri": "",
+            "can_edit": True,
+        }
+
+    return render(
+        request,
+        "historico/historico.html",
+        contexto,
+    )
+
+
+@login_required
+@require_POST
+def emitir_historico(request, codigo):
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Apenas a secretaria pode emitir históricos.")
+
+    aluno = get_object_or_404(Aluno, codigo=codigo)
+    documento = emitir_documento(
+        aluno,
+        request.user,
+        request=request,
+    )
+    destino = reverse("historico:historico", args=[aluno.codigo])
+    return redirect(f"{destino}?documento={documento.id}")
+
+
+def validar_documento_publico(request, documento_id):
+    documento = get_object_or_404(
+        DocumentoHistorico.objects.select_related("aluno"),
+        pk=documento_id,
+    )
+    validacao = validar_documento(documento)
+    snapshot_aluno = documento.snapshot.get("aluno", {})
+    oficial = documento.snapshot.get("oficial", {})
+
+    return render(
+        request,
+        "historico/validar_documento.html",
+        {
+            "documento": documento,
+            "validacao": validacao,
+            "nome_mascarado": mascarar_nome(snapshot_aluno.get("nome", "")),
+            "codigo_mascarado": mascarar_codigo(snapshot_aluno.get("codigo", "")),
+            "ultima_serie": oficial.get("ultima_serie", ""),
+            "data_conclusao": oficial.get("data_conclusao", ""),
         },
     )
 
@@ -567,12 +691,25 @@ def gerenciar_aluno(request, codigo=None):
 
                     registro = registros.get(serie)
                     novo_ano = anos_validos[serie]
+                    config_ano = (
+                        ConfiguracaoAno.objects
+                        .select_related("matriz_curricular")
+                        .filter(ano=novo_ano)
+                        .first()
+                    )
+                    matriz = (
+                        config_ano.matriz_curricular
+                        if config_ano and config_ano.matriz_curricular_id
+                        else matriz_para_ano(novo_ano)
+                    )
+
                     if registro is None:
                         registro = RegistroAcademico(
                             aluno=aluno_salvo,
                             nome_original=aluno_salvo.nome,
                             serie=serie,
                             ano=novo_ano,
+                            matriz_curricular=matriz,
                         )
                     else:
                         if registro.ano != novo_ano:
@@ -580,6 +717,8 @@ def gerenciar_aluno(request, codigo=None):
                             # da importação deixa de representar a origem exata.
                             registro.linha_origem = None
                         registro.ano = novo_ano
+                        if not registro.matriz_curricular_id and matriz:
+                            registro.matriz_curricular = matriz
 
                     for campo in (
                         "turma",
@@ -617,6 +756,15 @@ def gerenciar_aluno(request, codigo=None):
                                 )
                             },
                         )
+
+            registrar_auditoria(
+                request,
+                "ALUNO_CRIADO" if aluno is None else "ALUNO_ALTERADO",
+                entidade="Aluno",
+                objeto_id=aluno_salvo.codigo,
+                objeto_repr=aluno_salvo.nome,
+                detalhes={"series_editadas": sorted(anos_validos)},
+            )
 
             parametro = "criado=1" if aluno is None else "salvo=1"
             return redirect(
@@ -833,5 +981,17 @@ def salvar_historico(request, codigo):
                 serie=serie,
             )
             novos_criados += 1
+
+    registrar_auditoria(
+        request,
+        "NOTAS_ALTERADAS",
+        entidade="Aluno",
+        objeto_id=aluno.codigo,
+        objeto_repr=aluno.nome,
+        detalhes={
+            "registros_recebidos": len(payload.get("registros") or []),
+            "novos_registros": novos_criados,
+        },
+    )
 
     return JsonResponse({"ok": True, "recarregar": novos_criados > 0})
