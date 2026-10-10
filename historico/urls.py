@@ -39,4 +39,14 @@ urlpatterns = [
         views.salvar_historico,
         name="salvar_historico",
     ),
+    path(
+        "aluno/<int:codigo>/historico/emitir/",
+        views.emitir_historico,
+        name="emitir_historico",
+    ),
+    path(
+        "validar/<uuid:documento_id>/",
+        views.validar_documento_publico,
+        name="validar_documento",
+    ),
 ]
