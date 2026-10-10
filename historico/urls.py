@@ -14,6 +14,11 @@ urlpatterns = [
         name="dados_extras_anuais",
     ),
     path(
+        "integridade/",
+        views.integridade_dados,
+        name="integridade_dados",
+    ),
+    path(
         "alunos/importar/",
         views.importar_lista_alunos,
         name="importar_lista_alunos",
