@@ -45,6 +45,11 @@ urlpatterns = [
         name="salvar_historico",
     ),
     path(
+        "aluno/<int:codigo>/relacao/<int:registro_id>/status/",
+        views.alternar_relacao_academica,
+        name="alternar_relacao_academica",
+    ),
+    path(
         "aluno/<int:codigo>/historico/emitir/",
         views.emitir_historico,
         name="emitir_historico",
