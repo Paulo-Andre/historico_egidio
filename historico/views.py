@@ -3,13 +3,14 @@ import json
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Q
+from django.forms import modelformset_factory
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from .forms import AlunoCadastroForm, UF_CHOICES
-from .models import Aluno, Nota, RegistroAcademico
+from .forms import AlunoCadastroForm, ConfiguracaoAnoForm, UF_CHOICES
+from .models import Aluno, ConfiguracaoAno, Nota, RegistroAcademico
 from .services import historico_do_aluno, historico_oficial_do_aluno
 
 
@@ -143,6 +144,42 @@ def inicio(request):
             "alunos": alunos,
             "total": Aluno.objects.count(),
             "registros": RegistroAcademico.objects.count(),
+        },
+    )
+
+
+@login_required
+def dados_extras_anuais(request):
+    if not request.user.is_staff:
+        return HttpResponseForbidden(
+            "Apenas operadores autorizados podem alterar os dados anuais."
+        )
+
+    FormSet = modelformset_factory(
+        ConfiguracaoAno,
+        form=ConfiguracaoAnoForm,
+        extra=1,
+        can_delete=False,
+    )
+
+    queryset = ConfiguracaoAno.objects.all().order_by("-ano")
+
+    if request.method == "POST":
+        formset = FormSet(request.POST, queryset=queryset, prefix="anos")
+        if formset.is_valid():
+            formset.save()
+            return redirect(
+                f'{reverse("historico:dados_extras_anuais")}?salvo=1'
+            )
+    else:
+        formset = FormSet(queryset=queryset, prefix="anos")
+
+    return render(
+        request,
+        "historico/dados_extras_anuais.html",
+        {
+            "formset": formset,
+            "salvo": request.GET.get("salvo") == "1",
         },
     )
 
