@@ -6,6 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
+from .importacao_notas_pdf import aplicar_notas_pdf
 from .models import Aluno, ConfiguracaoAno, Nota, RegistroAcademico
 from .services import historico_oficial_do_aluno
 
@@ -552,3 +553,104 @@ class ImportacaoListaAlunosTests(TestCase):
         aluno = Aluno.objects.get(nome="ALUNO FILIAÇÃO")
         self.assertEqual(aluno.pai, "PAI SEM CABEÇALHO")
         self.assertEqual(aluno.mae, "MÃE SEM CABEÇALHO")
+
+
+
+class ImportacaoNotasPdfPreservacaoHistoricoTests(TestCase):
+    def test_nota_de_um_ano_nao_substitui_nota_de_outro_ano(self):
+        aluno = Aluno.objects.create(
+            codigo=500,
+            nome="ALUNO COM CINCO ANOS",
+            curso="ENSINO FUNDAMENTAL",
+        )
+        primeiro = RegistroAcademico.objects.create(
+            aluno=aluno,
+            nome_original=aluno.nome,
+            ano=2022,
+            serie=1,
+            turma="A",
+        )
+        segundo = RegistroAcademico.objects.create(
+            aluno=aluno,
+            nome_original=aluno.nome,
+            ano=2023,
+            serie=2,
+            turma="A",
+        )
+        Nota.objects.create(
+            registro=primeiro,
+            componente=Nota.MATEMATICA,
+            valor="81",
+        )
+        Nota.objects.create(
+            registro=segundo,
+            componente=Nota.MATEMATICA,
+            valor="72",
+        )
+
+        aplicar_notas_pdf(
+            {
+                "itens": [
+                    {
+                        "nome": "ALUNO COM CINCO ANOS",
+                        "ano": 2023,
+                        "serie": 2,
+                        "turma": "A",
+                        "notas": {Nota.MATEMATICA: "95"},
+                    }
+                ]
+            }
+        )
+
+        nota_2022 = Nota.objects.get(
+            registro=primeiro,
+            componente=Nota.MATEMATICA,
+        )
+        nota_2023 = Nota.objects.get(
+            registro=segundo,
+            componente=Nota.MATEMATICA,
+        )
+
+        self.assertEqual(nota_2022.valor, "81")
+        self.assertEqual(nota_2023.valor, "95")
+        self.assertEqual(
+            Nota.objects.filter(
+                registro__aluno=aluno,
+                componente=Nota.MATEMATICA,
+            ).count(),
+            2,
+        )
+
+    def test_mesma_disciplina_pode_existir_em_cinco_anos(self):
+        aluno = Aluno.objects.create(
+            codigo=501,
+            nome="ALUNO HISTORICO COMPLETO",
+            curso="ENSINO FUNDAMENTAL",
+        )
+
+        for serie, ano, valor in (
+            (1, 2021, "70"),
+            (2, 2022, "75"),
+            (3, 2023, "80"),
+            (4, 2024, "85"),
+            (5, 2025, "90"),
+        ):
+            registro = RegistroAcademico.objects.create(
+                aluno=aluno,
+                nome_original=aluno.nome,
+                ano=ano,
+                serie=serie,
+            )
+            Nota.objects.create(
+                registro=registro,
+                componente=Nota.LINGUA_PORTUGUESA,
+                valor=valor,
+            )
+
+        self.assertEqual(
+            Nota.objects.filter(
+                registro__aluno=aluno,
+                componente=Nota.LINGUA_PORTUGUESA,
+            ).count(),
+            5,
+        )
