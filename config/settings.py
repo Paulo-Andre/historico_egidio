@@ -9,6 +9,12 @@ if not SECRET_KEY:
         "DJANGO_SECRET_KEY não definido. O entrypoint deve gerar/carregar uma chave persistente."
     )
 
+DOCUMENT_SIGNING_KEY = os.getenv("DOCUMENT_SIGNING_KEY", "")
+if not DOCUMENT_SIGNING_KEY:
+    raise RuntimeError(
+        "DOCUMENT_SIGNING_KEY não definido. O entrypoint deve gerar/carregar a chave de assinatura."
+    )
+
 ALLOWED_HOSTS = [
     x.strip()
     for x in os.getenv(
@@ -95,3 +101,11 @@ LOGOUT_REDIRECT_URL = "/admin/login/"
 DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 5000
+
+CSRF_TRUSTED_ORIGINS = [
+    origem.strip()
+    for origem in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origem.strip()
+]
+SESSION_COOKIE_AGE = int(os.getenv("DJANGO_SESSION_AGE", "3600"))
+SESSION_SAVE_EVERY_REQUEST = True
