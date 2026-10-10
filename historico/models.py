@@ -13,6 +13,15 @@ class Aluno(models.Model):
     identidade = models.CharField(max_length=40, blank=True)
     orgao_expedidor = models.CharField(max_length=80, blank=True)
     data_conclusao = models.CharField(max_length=30, blank=True)
+    serie_conclusao = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name="Série de conclusão no certificado",
+        help_text=(
+            "Valor opcional exibido na linha de conclusão do certificado, "
+            "mesmo quando não há relação acadêmica ativa para a série."
+        ),
+    )
     data_expedicao = models.CharField(max_length=30, blank=True)
     observacao_historico = models.TextField(blank=True)
     uf = models.CharField(max_length=10, blank=True)
